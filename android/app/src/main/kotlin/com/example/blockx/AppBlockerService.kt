@@ -1,4 +1,4 @@
-package com.example.block
+package com.example.blockx
 
 import android.accessibilityservice.AccessibilityService
 import android.app.usage.UsageEvents
@@ -13,15 +13,20 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+
+private const val TAG = "BlockX"
 
 /**
  * The blocker. Detects the real foreground app (via UsageStats) and, based on
@@ -38,6 +43,8 @@ class AppBlockerService : AccessibilityService() {
 
     private var lastBlockStart = 0L
     private var lastBlockedPackage: String? = null
+    private var pendingBlockLaunch: Runnable? = null
+    private var lastDecisionKey: String? = null
     private var usageStatsManager: UsageStatsManager? = null
 
     private val handler = Handler(Looper.getMainLooper())
@@ -116,6 +123,7 @@ class AppBlockerService : AccessibilityService() {
 
     override fun onUnbind(intent: Intent?): Boolean {
         handler.removeCallbacks(recheckRunnable)
+        pendingBlockLaunch?.let { handler.removeCallbacks(it) }
         try {
             unregisterReceiver(screenUnlockReceiver)
         } catch (_: Exception) {
@@ -163,7 +171,13 @@ class AppBlockerService : AccessibilityService() {
             return
         }
 
-        when (BlockRepository.decide(this, pkg)) {
+        val decision = BlockRepository.decide(this, pkg)
+        val decisionKey = "$pkg:$decision"
+        if (decisionKey != lastDecisionKey) {
+            Log.d(TAG, "evaluate: $pkg -> $decision")
+            lastDecisionKey = decisionKey
+        }
+        when (decision) {
             BlockRepository.Decision.NONE -> hideFloating()
 
             BlockRepository.Decision.ALLOW_SESSION -> showFloating(pkg)
@@ -191,16 +205,37 @@ class AppBlockerService : AccessibilityService() {
         if (now - lastBlockStart < 400) return
 
         // Some apps (e.g. Facebook) aggressively re-launch themselves to the
-        // foreground, winning the race against our block screen and flickering
-        // back into view. If the SAME app keeps reappearing within a few seconds,
-        // decisively send it to the background with HOME first — an app cannot win
-        // against the global Home action. Normal apps/games block on the first try
-        // and never hit this, so they don't get an extra launcher flash.
-        if (pkg == lastBlockedPackage && now - lastBlockStart < 4000) {
-            performGlobalAction(GLOBAL_ACTION_HOME)
-        }
+        // foreground, winning the race against our block screen. The same brief
+        // "app is in front again" happens right after the user dismisses the
+        // block screen with our "Go to home" button and reopens the app within a
+        // few seconds. In both cases we send it to the background with HOME first
+        // (an app can't beat the global Home action) — but then we launch the
+        // block screen a beat LATER, so it reliably lands on top of the launcher.
+        // Launching immediately after HOME raced the Home transition (and a still-
+        // finishing singleTask block screen), which left the app closed with no
+        // block screen showing at all.
+        val needsHomeKick = pkg == lastBlockedPackage && now - lastBlockStart < 4000
         lastBlockStart = now
         lastBlockedPackage = pkg
+
+        Log.d(TAG, "showBlockScreen: $pkg mode=$mode homeKick=$needsHomeKick")
+
+        pendingBlockLaunch?.let { handler.removeCallbacks(it) }
+        pendingBlockLaunch = null
+
+        if (needsHomeKick) {
+            performGlobalAction(GLOBAL_ACTION_HOME)
+            val launch = Runnable { launchBlockActivity(pkg, mode, reason) }
+            pendingBlockLaunch = launch
+            handler.postDelayed(launch, 350L)
+        } else {
+            launchBlockActivity(pkg, mode, reason)
+        }
+    }
+
+    private fun launchBlockActivity(pkg: String, mode: String, reason: String?) {
+        pendingBlockLaunch = null
+        if (BlockActivity.isVisible) return
 
         val intent = Intent(this, BlockActivity::class.java).apply {
             addFlags(
@@ -214,17 +249,35 @@ class AppBlockerService : AccessibilityService() {
         }
         try {
             startActivity(intent)
-        } catch (_: Exception) {
+            Log.d(TAG, "launched BlockActivity for $pkg")
+        } catch (e: Exception) {
+            Log.w(TAG, "failed to launch BlockActivity for $pkg", e)
         }
     }
 
     // ---- Floating session widget ----
 
     private var floatingView: View? = null
+    private var floatingParams: WindowManager.LayoutParams? = null
+    private var floatingIcon: View? = null
+    private var floatingPanel: View? = null
     private var floatingPackage: String? = null
     private var floatingExpanded = false
     private var floatingOpensText: TextView? = null
     private var floatingTimeText: TextView? = null
+
+    // Remembered position between rebuilds: which side edge it's parked on and
+    // its vertical offset. Starts parked on the right (matching the old fixed
+    // spot). -1 y means "not placed yet — use the default".
+    private var floatingIsLeftEdge = false
+    private var floatingY = -1
+
+    // Drag state for the touch handler (tap = expand, drag = move + snap).
+    private var dragStartRawX = 0f
+    private var dragStartRawY = 0f
+    private var dragStartX = 0
+    private var dragStartY = 0
+    private var dragMoved = false
 
     private fun showFloating(pkg: String) {
         if (floatingView != null && floatingPackage == pkg) {
@@ -249,14 +302,21 @@ class AppBlockerService : AccessibilityService() {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT,
         )
-        params.gravity = Gravity.TOP or Gravity.END
-        params.y = dp(120)
+        // Absolute positioning from the top-left corner so the widget can be
+        // dragged freely and snapped to whichever side edge is nearest.
+        params.gravity = Gravity.TOP or Gravity.START
+        params.x = 0
+        params.y = if (floatingY >= 0) floatingY else dp(120)
 
         try {
             wm.addView(view, params)
             floatingView = view
+            floatingParams = params
             floatingPackage = pkg
             floatingExpanded = false
+            attachDragHandler()
+            // Width is only known after layout; park it on the remembered edge.
+            view.post { placeAtRememberedEdge() }
         } catch (_: Exception) {
         }
     }
@@ -270,16 +330,15 @@ class AppBlockerService : AccessibilityService() {
         val icon = ImageView(this).apply {
             setImageDrawable(
                 try {
-                    packageManager.getApplicationIcon(pkg)
+                    // Always show BlockX's own icon, never the blocked app's.
+                    packageManager.getApplicationIcon(packageName)
                 } catch (_: Exception) {
                     null
                 },
             )
             val size = dp(44)
             layoutParams = LinearLayout.LayoutParams(size, size)
-            setBackgroundColor(Color.argb(160, 0, 0, 0))
-            setPadding(dp(4), dp(4), dp(4), dp(4))
-            setOnClickListener { toggleFloatingPanel() }
+            // No background/padding — show only the icon, no dark box around it.
         }
 
         val panel = LinearLayout(this).apply {
@@ -310,17 +369,113 @@ class AppBlockerService : AccessibilityService() {
 
         floatingOpensText = opens
         floatingTimeText = time
+        floatingIcon = icon
+        floatingPanel = panel
 
+        // Fixed child order: panel then icon (we never mutate the live overlay's
+        // hierarchy — that caused a null-child insets crash). anchorToEdge()
+        // repositions the whole row against the parked edge so it stays
+        // on-screen when the panel expands.
         row.addView(panel)
         row.addView(icon)
         return row
     }
 
+    /** Drag to move, release to snap to the nearest side edge; tap = expand. */
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
+    private fun attachDragHandler() {
+        val icon = floatingIcon ?: return
+        val slop = ViewConfiguration.get(this).scaledTouchSlop
+        icon.setOnTouchListener { _, event ->
+            val params = floatingParams ?: return@setOnTouchListener false
+            val view = floatingView ?: return@setOnTouchListener false
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    dragStartRawX = event.rawX
+                    dragStartRawY = event.rawY
+                    dragStartX = params.x
+                    dragStartY = params.y
+                    dragMoved = false
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.rawX - dragStartRawX
+                    val dy = event.rawY - dragStartRawY
+                    if (!dragMoved &&
+                        (Math.abs(dx) > slop || Math.abs(dy) > slop)
+                    ) {
+                        dragMoved = true
+                    }
+                    if (dragMoved) {
+                        params.x = dragStartX + dx.toInt()
+                        params.y = (dragStartY + dy.toInt()).coerceAtLeast(0)
+                        updateLayout(view, params)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (dragMoved) snapToNearestEdge() else toggleFloatingPanel()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    /** Place on the remembered edge (used when the widget is (re)shown). */
+    private fun placeAtRememberedEdge() {
+        val view = floatingView ?: return
+        val params = floatingParams ?: return
+        val maxY = (screenHeightPx() - view.height).coerceAtLeast(0)
+        params.y = (if (floatingY >= 0) floatingY else dp(120)).coerceIn(0, maxY)
+        floatingY = params.y
+        anchorToEdge()
+        updateLayout(view, params)
+    }
+
+    /** After a drag, snap to the closer side edge and remember it. */
+    private fun snapToNearestEdge() {
+        val view = floatingView ?: return
+        val params = floatingParams ?: return
+        val center = params.x + view.width / 2
+        floatingIsLeftEdge = center < screenWidthPx() / 2
+        val maxY = (screenHeightPx() - view.height).coerceAtLeast(0)
+        params.y = params.y.coerceIn(0, maxY)
+        floatingY = params.y
+        anchorToEdge()
+        updateLayout(view, params)
+    }
+
+    /** Pin x flush against the parked edge, using the widget's current width. */
+    private fun anchorToEdge() {
+        val view = floatingView ?: return
+        val params = floatingParams ?: return
+        params.x = if (floatingIsLeftEdge) 0 else (screenWidthPx() - view.width).coerceAtLeast(0)
+    }
+
+    private fun updateLayout(view: View, params: WindowManager.LayoutParams) {
+        try {
+            (getSystemService(Context.WINDOW_SERVICE) as? WindowManager)
+                ?.updateViewLayout(view, params)
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun screenWidthPx(): Int = resources.displayMetrics.widthPixels
+
+    private fun screenHeightPx(): Int = resources.displayMetrics.heightPixels
+
     private fun toggleFloatingPanel() {
         floatingExpanded = !floatingExpanded
-        val panel = (floatingView as? LinearLayout)?.getChildAt(0)
-        panel?.visibility = if (floatingExpanded) View.VISIBLE else View.GONE
+        floatingPanel?.visibility = if (floatingExpanded) View.VISIBLE else View.GONE
         refreshFloating()
+        // The panel changes the widget's width; re-pin it to the parked edge
+        // once the new size is measured so it never runs off-screen.
+        val view = floatingView ?: return
+        view.post {
+            anchorToEdge()
+            floatingParams?.let { updateLayout(view, it) }
+        }
     }
 
     private fun refreshFloating() {
@@ -341,6 +496,9 @@ class AppBlockerService : AccessibilityService() {
         } catch (_: Exception) {
         }
         floatingView = null
+        floatingParams = null
+        floatingIcon = null
+        floatingPanel = null
         floatingPackage = null
         floatingExpanded = false
         floatingOpensText = null

@@ -1,4 +1,4 @@
-package com.example.block
+package com.example.blockx
 
 import android.app.AppOpsManager
 import android.content.ComponentName
@@ -25,7 +25,7 @@ import io.flutter.plugin.common.MethodChannel
  */
 class MainActivity : FlutterActivity() {
 
-    private val channelName = "com.block.app/blocker"
+    private val channelName = "com.blockx.app/blocker"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

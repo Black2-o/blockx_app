@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.block"
+    namespace = "com.example.blockx"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         // Personal sideloaded build — no real domain needed.
-        applicationId = "com.block.app"
+        applicationId = "com.blockx.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

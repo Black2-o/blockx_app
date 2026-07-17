@@ -13,7 +13,7 @@ import '../models/block_config.dart';
 class BlockPlatform {
   BlockPlatform._();
 
-  static const MethodChannel _channel = MethodChannel('com.block.app/blocker');
+  static const MethodChannel _channel = MethodChannel('com.blockx.app/blocker');
 
   /// Every launchable app installed on the device.
   static Future<List<AppInfo>> getInstalledApps() async {

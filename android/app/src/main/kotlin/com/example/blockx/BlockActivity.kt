@@ -1,16 +1,19 @@
-package com.example.block
+package com.example.blockx
 
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+
+private const val TAG = "BlockX"
 
 /**
  * The full-screen screen shown over a blocked app. Two modes:
@@ -135,6 +138,7 @@ class BlockActivity : Activity() {
     // ---- Shared ----
 
     private fun leaveToHome() {
+        Log.d(TAG, "leaveToHome (Go to home button) pkg=$blockedPackage")
         startActivity(
             Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_HOME)

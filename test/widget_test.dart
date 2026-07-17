@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:block/data/block_store.dart';
-import 'package:block/models/block_config.dart';
-import 'package:block/providers/block_providers.dart';
-import 'package:block/screens/home_screen.dart';
+import 'package:blockx/data/block_store.dart';
+import 'package:blockx/models/block_config.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/screens/home_screen.dart';
 
 /// A block store backed by an in-memory map so tests don't touch Hive/native.
 class _FakeBlockStore implements BlockStore {
