@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/block_store.dart';
@@ -25,11 +27,18 @@ final blockListProvider =
   return BlockListNotifier(ref.watch(blockStoreProvider));
 });
 
-/// Today's per-app screen time for the Progress screen (read-only native call).
-/// Auto-disposes so it re-fetches fresh each time the Progress tab is opened.
+/// Today's per-app screen time for the Screen Time screen (read-only native
+/// call). Auto-disposes so it re-fetches fresh each time the tab is opened.
 final usageStatsProvider =
     FutureProvider.autoDispose<List<AppUsage>>((ref) {
   return BlockPlatform.getUsageStats();
+});
+
+/// An app's launcher icon (PNG bytes), by package name. Cached for the session
+/// so the same icon isn't fetched twice.
+final appIconProvider =
+    FutureProvider.family<Uint8List?, String>((ref, packageName) {
+  return BlockPlatform.getAppIcon(packageName);
 });
 
 /// Whether the permissions the blocker needs are granted.

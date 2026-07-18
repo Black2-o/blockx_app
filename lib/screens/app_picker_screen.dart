@@ -7,6 +7,7 @@ import '../models/block_config.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
+import '../widgets/app_icon.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/celebration.dart';
 import '../widgets/empty_state.dart';
@@ -139,25 +140,14 @@ class _AppRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.android, color: AppColors.textDim, size: 22),
+              AppIcon(packageName: app.packageName, size: 40),
               const SizedBox(width: AppSpacing.md),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      app.appName,
-                      style: AppText.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      app.packageName,
-                      style: AppText.bodyDim,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                child: Text(
+                  app.appName,
+                  style: AppText.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),

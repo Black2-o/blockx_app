@@ -916,55 +916,49 @@ class AppBlockerService : AccessibilityService() {
                     null
                 },
             )
-            // Smaller, sitting in a neat rounded chip with a subtle red edge.
-            val size = dp(38)
+            // Just the icon — no background chip, no padding.
+            val size = dp(44)
             layoutParams = LinearLayout.LayoutParams(size, size)
-            val pad = dp(6)
-            setPadding(pad, pad, pad, pad)
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(0xF0111111.toInt())
-                setStroke(dp(1), 0x66E8000D.toInt())
-            }
         }
 
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
             visibility = View.GONE
             background = GradientDrawable().apply {
-                cornerRadius = dp(14).toFloat()
+                cornerRadius = dp(12).toFloat()
                 setColor(0xF0111111.toInt())
                 setStroke(dp(1), 0x22FFFFFF.toInt())
             }
-            setPadding(dp(14), dp(10), dp(14), dp(10))
+            setPadding(dp(12), dp(8), dp(12), dp(8))
         }
         val opens = TextView(this).apply {
-            setTextColor(cText)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTextColor(0xB3F0E0E0.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
         }
         val time = TextView(this).apply {
             setTextColor(cText)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
             setTypeface(Typeface.DEFAULT_BOLD)
         }
         val endNow = Button(this).apply {
-            text = "End now"
+            text = "End"
             isAllCaps = true
             setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
             setTypeface(Typeface.DEFAULT_BOLD)
             stateListAnimator = null
             minWidth = 0
             minHeight = 0
-            setPadding(dp(16), dp(6), dp(16), dp(6))
+            setPadding(dp(14), dp(3), dp(14), dp(3))
             background = GradientDrawable().apply {
-                cornerRadius = dp(8).toFloat()
+                cornerRadius = dp(6).toFloat()
                 setColor(cRed)
             }
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(8) }
+            ).apply { topMargin = dp(6) }
             setOnClickListener {
                 BlockRepository.endSession(this@AppBlockerService, pkg)
                 hideFloating()
@@ -1105,8 +1099,8 @@ class AppBlockerService : AccessibilityService() {
         val msLeft = BlockRepository.sessionMillisLeft(this, pkg)
         val mins = (msLeft / 60_000L).toInt()
         val secs = ((msLeft % 60_000L) / 1000L).toInt()
-        floatingOpensText?.text = "Opens left today: $opensLeft"
-        floatingTimeText?.text = "Time left: %d:%02d".format(mins, secs)
+        floatingOpensText?.text = "$opensLeft opens left"
+        floatingTimeText?.text = "%d:%02d".format(mins, secs)
     }
 
     private fun hideFloating() {

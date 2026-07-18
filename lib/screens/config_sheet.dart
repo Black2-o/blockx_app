@@ -46,6 +46,12 @@ class _ConfigSheetState extends State<_ConfigSheet> {
   late int _opensPerDay;
   late int _sessionMinutes;
 
+  // Anti-cheat: once an app/feature has a Limit, you may only LOWER it, never
+  // raise it (otherwise you could top up after using your quota). Caps are the
+  // current values; null means no cap (a brand-new block).
+  int? _maxOpens;
+  int? _maxMinutes;
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +59,10 @@ class _ConfigSheetState extends State<_ConfigSheet> {
     _mode = initial?.mode ?? BlockMode.direct;
     _opensPerDay = initial?.opensPerDay ?? 5;
     _sessionMinutes = initial?.sessionMinutes ?? 5;
+    if (initial != null && initial.mode == BlockMode.timed) {
+      _maxOpens = initial.opensPerDay;
+      _maxMinutes = initial.sessionMinutes;
+    }
   }
 
   @override
@@ -127,6 +137,7 @@ class _ConfigSheetState extends State<_ConfigSheet> {
                   options: _opensOptions,
                   value: _opensPerDay,
                   suffix: '×',
+                  maxValue: _maxOpens,
                   onChanged: (v) => setState(() => _opensPerDay = v),
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -136,8 +147,25 @@ class _ConfigSheetState extends State<_ConfigSheet> {
                   options: _minutesOptions,
                   value: _sessionMinutes,
                   suffix: ' min',
+                  maxValue: _maxMinutes,
                   onChanged: (v) => setState(() => _sessionMinutes = v),
                 ),
+                if (_maxOpens != null || _maxMinutes != null) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    children: [
+                      const Icon(Icons.lock_outline,
+                          size: 16, color: AppColors.amber),
+                      const SizedBox(width: AppSpacing.xs),
+                      Expanded(
+                        child: Text(
+                          'Limits can only be lowered, never raised.',
+                          style: AppText.bodyDim.copyWith(color: AppColors.amber),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
               const SizedBox(height: AppSpacing.xl),
               PrimaryButton(
@@ -238,12 +266,16 @@ class _NumberChips extends StatelessWidget {
     required this.value,
     required this.suffix,
     required this.onChanged,
+    this.maxValue,
   });
 
   final List<int> options;
   final int value;
   final String suffix;
   final ValueChanged<int> onChanged;
+
+  /// When set, options greater than this are disabled (limits only lower).
+  final int? maxValue;
 
   @override
   Widget build(BuildContext context) {
@@ -255,6 +287,7 @@ class _NumberChips extends StatelessWidget {
           _ValueChip(
             label: '$o$suffix',
             selected: o == value,
+            enabled: maxValue == null || o <= maxValue!,
             onTap: () => onChanged(o),
           ),
       ],
@@ -267,14 +300,40 @@ class _ValueChip extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.enabled = true,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
+    if (!enabled) {
+      return Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.dark3.withValues(alpha: 0.4),
+          borderRadius: AppRadius.smAll,
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: AppText.label.copyWith(color: AppColors.textDim),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            const Icon(Icons.lock, size: 12, color: AppColors.textDim),
+          ],
+        ),
+      );
+    }
     return InkWell(
       onTap: onTap,
       borderRadius: AppRadius.smAll,

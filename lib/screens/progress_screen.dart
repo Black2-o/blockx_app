@@ -7,6 +7,7 @@ import '../services/block_platform.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
+import '../widgets/app_icon.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/buttons.dart';
 import '../widgets/decor.dart';
@@ -35,7 +36,7 @@ class ProgressScreen extends ConsumerWidget {
         child: content,
       );
     }
-    return AppScaffold(title: 'Progress', body: content, padded: false);
+    return AppScaffold(title: 'Screen Time', body: content, padded: false);
   }
 }
 
@@ -181,7 +182,7 @@ class _UsageRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.android, color: AppColors.textDim, size: 20),
+              AppIcon(packageName: usage.packageName, size: 36),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(

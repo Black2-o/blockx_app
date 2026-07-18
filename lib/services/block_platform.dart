@@ -27,6 +27,13 @@ class BlockPlatform {
           a.appName.toLowerCase().compareTo(b.appName.toLowerCase()));
   }
 
+  /// An app's launcher icon as PNG bytes (read-only), or null if unavailable.
+  static Future<Uint8List?> getAppIcon(String packageName) async {
+    final result = await _channel
+        .invokeMethod('getAppIcon', {'package': packageName});
+    return result as Uint8List?;
+  }
+
   /// Today's per-app foreground time (read-only, from Android UsageStats).
   /// Requires the already-granted Usage Access permission. Additive — does not
   /// touch any blocking config.

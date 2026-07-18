@@ -7,6 +7,7 @@ import '../providers/block_providers.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
+import '../widgets/app_icon.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/cards.dart';
 import '../widgets/empty_state.dart';
@@ -69,6 +70,7 @@ class BlockedAppsScreen extends ConsumerWidget {
                 final pkg = packages[index];
                 final name = names[pkg] ?? pkg;
                 return _AppRow(
+                  packageName: pkg,
                   name: name,
                   config: blockList[pkg]!,
                   onToggle: (v) =>
@@ -119,6 +121,7 @@ class BlockedAppsScreen extends ConsumerWidget {
 
 class _AppRow extends StatelessWidget {
   const _AppRow({
+    required this.packageName,
     required this.name,
     required this.config,
     required this.onToggle,
@@ -126,6 +129,7 @@ class _AppRow extends StatelessWidget {
     required this.onRemove,
   });
 
+  final String packageName;
   final String name;
   final BlockConfig config;
   final ValueChanged<bool> onToggle;
@@ -146,7 +150,7 @@ class _AppRow extends StatelessWidget {
         onLongPress: onRemove,
         child: Row(
           children: [
-            const Icon(Icons.android, color: AppColors.textDim, size: 22),
+            AppIcon(packageName: packageName, size: 40),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(

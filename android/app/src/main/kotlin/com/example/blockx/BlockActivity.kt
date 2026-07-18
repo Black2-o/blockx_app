@@ -101,12 +101,13 @@ class BlockActivity : Activity() {
 
     private fun buildBlock(reason: String?): View {
         val root = container(cRed)
+        root.addView(flexSpacer())
         root.addView(iconBadge(cRed, if (isFeature) R.drawable.ic_block_feature else R.drawable.ic_block_lock))
         root.addView(spacer(dp(24)))
         root.addView(headline(if (isFeature) "Blocked" else "App Blocked"))
         root.addView(spacer(dp(12)))
         root.addView(bodyText(reason ?: "This app is blocked."))
-        root.addView(spacer(dp(32)))
+        root.addView(flexSpacer())
         root.addView(
             primaryButton(if (isFeature) "Go back" else "Go to home screen", cRed) { leaveToHome() },
         )
@@ -121,12 +122,13 @@ class BlockActivity : Activity() {
 
     private fun buildBackBlock(reason: String?): View {
         val root = container(cRed)
+        root.addView(flexSpacer())
         root.addView(iconBadge(cRed, R.drawable.ic_block_globe))
         root.addView(spacer(dp(24)))
         root.addView(headline("Site Blocked"))
         root.addView(spacer(dp(12)))
         root.addView(bodyText(reason ?: "This is blocked."))
-        root.addView(spacer(dp(32)))
+        root.addView(flexSpacer())
         root.addView(primaryButton("Go back", cRed) { goBack() })
         return root
     }
@@ -140,6 +142,7 @@ class BlockActivity : Activity() {
 
     private fun buildInterstitial(): View {
         val root = container(cAmber)
+        root.addView(flexSpacer())
         root.addView(iconBadge(cAmber, R.drawable.ic_block_hourglass))
         root.addView(spacer(dp(24)))
         root.addView(headline("Is this really needed?"))
@@ -151,7 +154,7 @@ class BlockActivity : Activity() {
             root.addView(bodyText("Opens left today: $left"))
         }
 
-        root.addView(spacer(dp(32)))
+        root.addView(flexSpacer())
 
         val open = primaryButton("Open (5)", cAmber) { onOpenTapped() }.apply {
             isEnabled = false
@@ -159,7 +162,7 @@ class BlockActivity : Activity() {
         openButton = open
         root.addView(open)
 
-        root.addView(spacer(dp(8)))
+        root.addView(spacer(dp(4)))
         root.addView(
             secondaryLink(if (isFeature) "Not now" else "Go to home screen") { leaveToHome() },
         )
@@ -239,12 +242,20 @@ class BlockActivity : Activity() {
 
     // ---- styled view helpers (BlockX visual language, no XML) ----
 
-    /** Root: centered column on the dark background with a soft radial accent glow. */
+    /** Root: full-height column on the dark background with a soft radial glow.
+     *  Content is centered by flex spacers; the action button sits at the bottom. */
     private fun container(accent: Int): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        gravity = Gravity.CENTER
+        gravity = Gravity.CENTER_HORIZONTAL
         background = glow(accent)
-        setPadding(dp(32), dp(32), dp(32), dp(32))
+        setPadding(dp(28), dp(28), dp(28), dp(36))
+    }
+
+    /** A flexible (weight 1) spacer that expands to push content/buttons apart. */
+    private fun flexSpacer(): View = View(this).apply {
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f,
+        )
     }
 
     private fun glow(accent: Int): GradientDrawable {
@@ -310,9 +321,12 @@ class BlockActivity : Activity() {
                 cornerRadius = dp(8).toFloat()
                 setColor(accent)
             }
-            minimumWidth = dp(220)
-            minimumHeight = dp(52)
-            setPadding(dp(24), dp(12), dp(24), dp(12))
+            minimumHeight = dp(54)
+            setPadding(dp(24), dp(14), dp(24), dp(14))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
             setOnClickListener { onClick() }
         }
 

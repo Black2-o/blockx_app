@@ -12,6 +12,7 @@ import '../widgets/inputs.dart';
 import '../widgets/state_indicators.dart';
 import 'ask_screen.dart';
 import 'faq_screen.dart';
+import 'splash_screen.dart';
 import 'support_screen.dart';
 
 /// Profile: premium status + the help/links hub (FAQ, Report a bug, Tip jar).
@@ -46,6 +47,18 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     if (!mounted) return;
     setState(() => _error = ok ? null : 'Incorrect username or password.');
     if (ok) FocusScope.of(context).unfocus();
+  }
+
+  /// Sign out and send the user all the way back to the splash → get-started →
+  /// login flow, clearing the whole navigation stack so no app page is reachable
+  /// until they sign in again.
+  Future<void> _signOut() async {
+    await ref.read(accountProvider.notifier).signOut();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const SplashScreen()),
+      (route) => false,
+    );
   }
 
   @override
@@ -179,7 +192,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         ),
         const SizedBox(height: AppSpacing.xl),
         OutlinedButton(
-          onPressed: () => ref.read(accountProvider.notifier).signOut(),
+          onPressed: _signOut,
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.textDim,
             side: const BorderSide(color: AppColors.border),

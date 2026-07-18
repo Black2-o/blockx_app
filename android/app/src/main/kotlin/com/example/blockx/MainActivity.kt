@@ -1,14 +1,20 @@
 package com.example.blockx
 
 import android.app.AppOpsManager
+import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.Process
 import android.provider.Settings
+import java.io.ByteArrayOutputStream
 import java.util.Calendar
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -37,9 +43,14 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "getInstalledApps" -> result.success(getInstalledApps())
 
-                    // Read-only: today's per-app screen time for the Progress
+                    // Read-only: today's per-app screen time for the Screen Time
                     // screen. Additive; does not affect any blocking rule.
                     "getUsageStats" -> result.success(getUsageStats())
+
+                    // Read-only: an app's launcher icon as PNG bytes, for the UI.
+                    "getAppIcon" -> result.success(
+                        getAppIcon(call.argument<String>("package") ?: ""),
+                    )
 
                     "setConfigs" -> {
                         val configsJson = call.argument<String>("configsJson") ?: "{}"
@@ -123,39 +134,54 @@ class MainActivity : FlutterActivity() {
     }
 
     /**
-     * Today's foreground time per app (ms), from [UsageStatsManager]. Read-only;
-     * requires the already-granted Usage Access permission. Returns a list of
-     * maps `{packageName, appName, totalTimeMs}` sorted by time desc. Additive —
-     * touches no blocking config or runtime state.
+     * Today's foreground time per app (ms). Read-only; requires the granted
+     * Usage Access permission. Returns maps `{packageName, appName, totalTimeMs}`
+     * sorted by time desc. Additive — touches no blocking config or state.
+     *
+     * Computed from [UsageEvents] (foreground/background transitions) rather than
+     * `queryUsageStats().totalTimeInForeground`, which returns overlapping daily
+     * buckets and hugely over-counts when summed.
      */
     private fun getUsageStats(): List<Map<String, Any>> {
         val usm = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
             ?: return emptyList()
 
         val end = System.currentTimeMillis()
-        val cal = Calendar.getInstance().apply {
+        val start = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
-        }
-        val start = cal.timeInMillis
+        }.timeInMillis
 
-        val stats = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, start, end)
-            ?: return emptyList()
-
+        val events = usm.queryEvents(start, end) ?: return emptyList()
+        val lastForeground = HashMap<String, Long>()
         val totals = HashMap<String, Long>()
-        for (u in stats) {
-            if (u.totalTimeInForeground > 0L) {
-                totals[u.packageName] =
-                    (totals[u.packageName] ?: 0L) + u.totalTimeInForeground
+        val ev = UsageEvents.Event()
+
+        while (events.hasNextEvent()) {
+            events.getNextEvent(ev)
+            val pkg = ev.packageName ?: continue
+            when (ev.eventType) {
+                UsageEvents.Event.MOVE_TO_FOREGROUND ->
+                    lastForeground[pkg] = ev.timeStamp
+                UsageEvents.Event.MOVE_TO_BACKGROUND -> {
+                    val began = lastForeground.remove(pkg)
+                    if (began != null && ev.timeStamp > began) {
+                        totals[pkg] = (totals[pkg] ?: 0L) + (ev.timeStamp - began)
+                    }
+                }
             }
+        }
+        // Apps still in the foreground at query time.
+        for ((pkg, began) in lastForeground) {
+            if (end > began) totals[pkg] = (totals[pkg] ?: 0L) + (end - began)
         }
 
         val pm = packageManager
         val out = ArrayList<Map<String, Any>>()
         for ((pkg, ms) in totals) {
-            if (pkg == packageName) continue
+            if (pkg == packageName || ms < 1000L) continue // skip self + <1s blips
             val label = try {
                 pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
             } catch (e: Exception) {
@@ -165,6 +191,33 @@ class MainActivity : FlutterActivity() {
         }
         out.sortByDescending { it["totalTimeMs"] as Long }
         return out.take(25)
+    }
+
+    /** An app's launcher icon as PNG bytes (~96px), or null. Read-only. */
+    private fun getAppIcon(pkg: String): ByteArray? {
+        if (pkg.isEmpty()) return null
+        return try {
+            val drawable = packageManager.getApplicationIcon(pkg)
+            val bmp = drawableToBitmap(drawable)
+            ByteArrayOutputStream().use { out ->
+                bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
+                out.toByteArray()
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun drawableToBitmap(drawable: Drawable): Bitmap {
+        if (drawable is BitmapDrawable && drawable.bitmap != null) return drawable.bitmap
+        val size = (96 * resources.displayMetrics.density).toInt().coerceAtLeast(96)
+        val w = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else size
+        val h = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else size
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return bmp
     }
 
     /**

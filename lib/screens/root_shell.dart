@@ -25,7 +25,7 @@ class _RootShellState extends State<RootShell> {
     NavTab(
         icon: Icons.insights_outlined,
         activeIcon: Icons.insights,
-        label: 'Progress'),
+        label: 'Screen Time'),
     NavTab(
         icon: Icons.person_outline, activeIcon: Icons.person, label: 'Profile'),
   ];
@@ -37,7 +37,8 @@ class _RootShellState extends State<RootShell> {
     const tabs = [
       // Home renders its own logo header.
       HomeDashboard(),
-      _TabWithHeader(title: 'Progress', child: ProgressScreen(embedded: true)),
+      _TabWithHeader(
+          title: 'Screen Time', child: ProgressScreen(embedded: true)),
       _TabWithHeader(title: 'Profile', child: AccountScreen(embedded: true)),
     ];
 
