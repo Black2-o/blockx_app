@@ -36,8 +36,11 @@ class BlockActivity : Activity() {
         const val EXTRA_PACKAGE = "package"
         const val EXTRA_MODE = "mode"
         const val EXTRA_REASON = "reason"
+        /** Shorts/Reels flavour: buttons just finish() back to the app's feed. */
+        const val EXTRA_FEATURE = "feature"
         const val MODE_BLOCK = "block"
         const val MODE_INTERSTITIAL = "interstitial"
+        const val MODE_BACK = "back"
 
         private const val OPEN_DELAY_MS = 5_000L
     }
@@ -45,6 +48,8 @@ class BlockActivity : Activity() {
     private var blockedPackage: String? = null
     private var openButton: Button? = null
     private var countdown: CountDownTimer? = null
+    private var isBackMode = false
+    private var isFeature = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,8 +66,14 @@ class BlockActivity : Activity() {
         blockedPackage = intent?.getStringExtra(EXTRA_PACKAGE)
         val mode = intent?.getStringExtra(EXTRA_MODE) ?: MODE_BLOCK
         val reason = intent?.getStringExtra(EXTRA_REASON)
+        isBackMode = mode == MODE_BACK
+        isFeature = intent?.getBooleanExtra(EXTRA_FEATURE, false) ?: false
         setContentView(
-            if (mode == MODE_INTERSTITIAL) buildInterstitial() else buildBlock(reason),
+            when (mode) {
+                MODE_INTERSTITIAL -> buildInterstitial()
+                MODE_BACK -> buildBackBlock(reason)
+                else -> buildBlock(reason)
+            },
         )
     }
 
@@ -74,8 +85,29 @@ class BlockActivity : Activity() {
             text(reason ?: "This app is blocked.", 22f),
         )
         root.addView(spacer())
-        root.addView(button("Go to home screen") { leaveToHome() })
+        root.addView(
+            button(if (isFeature) "Go back" else "Go to home screen") { leaveToHome() },
+        )
         return root
+    }
+
+    // ---- "Back" block (close returns to where you were, not the phone home) ----
+    // Used for blocked websites and in-app browsers: the service sends a global
+    // BACK so you return to the browser's home / previous tab, not the phone
+    // home. (Shorts/Reels use MODE_BLOCK/MODE_INTERSTITIAL with EXTRA_FEATURE
+    // instead — the service already backed out of the player before showing it.)
+
+    private fun buildBackBlock(reason: String?): View {
+        val root = container()
+        root.addView(text(reason ?: "This is blocked.", 22f))
+        root.addView(spacer())
+        root.addView(button("Go back") { goBack() })
+        return root
+    }
+
+    private fun goBack() {
+        AppBlockerService.instance?.goBackAndPause()
+        finish()
     }
 
     // ---- Interstitial with delayed Open ----
@@ -101,7 +133,9 @@ class BlockActivity : Activity() {
         root.addView(open)
 
         root.addView(spacer())
-        root.addView(button("Go to home screen") { leaveToHome() })
+        root.addView(
+            button(if (isFeature) "Not now" else "Go to home screen") { leaveToHome() },
+        )
 
         startOpenCountdown()
         return root
@@ -138,6 +172,13 @@ class BlockActivity : Activity() {
     // ---- Shared ----
 
     private fun leaveToHome() {
+        // Feature (Shorts/Reels) screens are shown over the app's own feed (the
+        // service backed out of the player first), so just return there — NOT the
+        // phone home screen.
+        if (isFeature) {
+            finish()
+            return
+        }
         Log.d(TAG, "leaveToHome (Go to home button) pkg=$blockedPackage")
         startActivity(
             Intent(Intent.ACTION_MAIN).apply {
@@ -148,9 +189,13 @@ class BlockActivity : Activity() {
         finish()
     }
 
-    @Deprecated("Back should go home, not return to the blocked app")
+    @Deprecated("Back should leave, not return to the blocked app/site")
     override fun onBackPressed() {
-        leaveToHome()
+        when {
+            isFeature -> finish()
+            isBackMode -> goBack()
+            else -> leaveToHome()
+        }
     }
 
     override fun onResume() {

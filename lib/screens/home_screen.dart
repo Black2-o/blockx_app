@@ -7,6 +7,8 @@ import '../providers/block_providers.dart';
 import '../services/block_platform.dart';
 import 'app_picker_screen.dart';
 import 'config_dialog.dart';
+import 'features_screen.dart';
+import 'sites_screen.dart';
 
 /// Home: the apps the user has chosen to block, each with an on/off switch,
 /// plus a `+` button to add more. Shows a setup banner until the two required
@@ -60,7 +62,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('BlockX')),
+      appBar: AppBar(
+        title: const Text('BlockX'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.video_library_outlined),
+            tooltip: 'Block Shorts/Reels',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const FeaturesScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.public),
+            tooltip: 'Blocked websites',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const SitesScreen()),
+              );
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
           const _PermissionBanner(),

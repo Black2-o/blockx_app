@@ -41,6 +41,24 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     }
 
+                    "setBlockedSites" -> {
+                        val sitesJson = call.argument<String>("sitesJson") ?: "[]"
+                        getSharedPreferences("block_prefs", Context.MODE_PRIVATE)
+                            .edit()
+                            .putString("blocked_sites_json", sitesJson)
+                            .apply()
+                        result.success(true)
+                    }
+
+                    "setFeatureBlocks" -> {
+                        val featuresJson = call.argument<String>("featuresJson") ?: "{}"
+                        getSharedPreferences("block_prefs", Context.MODE_PRIVATE)
+                            .edit()
+                            .putString("feature_blocks_json", featuresJson)
+                            .apply()
+                        result.success(true)
+                    }
+
                     "isAccessibilityEnabled" -> result.success(isAccessibilityEnabled())
 
                     "openAccessibilitySettings" -> {

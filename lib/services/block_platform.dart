@@ -37,6 +37,25 @@ class BlockPlatform {
     await _channel.invokeMethod('setConfigs', {'configsJson': jsonEncode(payload)});
   }
 
+  /// Shares the list of blocked website domains with the native service as a
+  /// JSON array: `["youtube.com", "instagram.com", ...]`. The service reads a
+  /// browser's address bar and bounces off any URL matching one of these.
+  static Future<void> setBlockedSites(List<String> sites) async {
+    await _channel.invokeMethod('setBlockedSites', {'sitesJson': jsonEncode(sites)});
+  }
+
+  /// Shares the enabled in-app sub-feature configs (Shorts/Reels) with the
+  /// native service as a JSON object: `{ "yt_shorts": {mode, opensPerDay,
+  /// sessionMinutes}, ... }`. Only enabled features should be passed. Native
+  /// treats "present" as "on" and reads the config (direct vs timed).
+  static Future<void> setFeatureBlocks(Map<String, BlockConfig> configs) async {
+    final payload = <String, dynamic>{
+      for (final e in configs.entries) e.key: e.value.toMap(),
+    };
+    await _channel
+        .invokeMethod('setFeatureBlocks', {'featuresJson': jsonEncode(payload)});
+  }
+
   /// Whether our Accessibility Service is enabled in system settings.
   static Future<bool> isAccessibilityEnabled() async {
     return await _channel.invokeMethod('isAccessibilityEnabled') as bool? ??
