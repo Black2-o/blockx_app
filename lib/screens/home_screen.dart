@@ -1,26 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/app_info.dart';
-import '../models/block_config.dart';
 import '../providers/block_providers.dart';
-import '../services/block_platform.dart';
-import 'app_picker_screen.dart';
-import 'config_dialog.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
+import '../widgets/decor.dart';
+import '../widgets/page_header.dart';
+import '../widgets/permission_banner.dart';
+import 'blocked_apps_screen.dart';
 import 'features_screen.dart';
 import 'sites_screen.dart';
 
-/// Home: the apps the user has chosen to block, each with an on/off switch,
-/// plus a `+` button to add more. Shows a setup banner until the two required
-/// permissions are granted.
-class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+/// The dashboard hub: a header, the live "locked down" summary, and three cards
+/// that open the full management pages (Block Apps · Shorts & Reels · Blocked
+/// Sites). The lists themselves live on their own pages so the dashboard stays
+/// short no matter how much is blocked.
+class HomeDashboard extends ConsumerStatefulWidget {
+  const HomeDashboard({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeDashboard> createState() => _HomeDashboardState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen>
+class _HomeDashboardState extends ConsumerState<HomeDashboard>
     with WidgetsBindingObserver {
   @override
   void initState() {
@@ -42,214 +45,281 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
+  void _push(Widget page) {
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+  }
+
   @override
   Widget build(BuildContext context) {
     final blockList = ref.watch(blockListProvider);
-    final installedAsync = ref.watch(installedAppsProvider);
+    final features = ref.watch(featureBlocksProvider);
+    final sites = ref.watch(blockedSitesProvider);
 
-    // Resolve a readable name for each stored package; fall back to the
-    // package name if the app isn't found (e.g. uninstalled since).
-    final names = <String, String>{};
-    installedAsync.whenData((apps) {
-      for (final AppInfo a in apps) {
-        names[a.packageName] = a.appName;
-      }
-    });
+    final activeApps = blockList.values.where((c) => c.enabled).length;
+    final featuresOn = features.values.where((c) => c.enabled).length;
 
-    final packages = blockList.keys.toList()
-      ..sort((a, b) => (names[a] ?? a).toLowerCase().compareTo(
-            (names[b] ?? b).toLowerCase(),
-          ));
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('BlockX'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.video_library_outlined),
-            tooltip: 'Block Shorts/Reels',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const FeaturesScreen()),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.public),
-            tooltip: 'Blocked websites',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const SitesScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          const _PermissionBanner(),
-          Expanded(
-            child: packages.isEmpty
-                ? const Center(
-                    child: Text('No apps blocked yet.\nTap + to add one.',
-                        textAlign: TextAlign.center),
-                  )
-                : ListView.builder(
-                    itemCount: packages.length,
-                    itemBuilder: (context, index) {
-                      final pkg = packages[index];
-                      final config = blockList[pkg];
-                      if (config == null) return const SizedBox.shrink();
-                      final name = names[pkg] ?? pkg;
-                      return ListTile(
-                        title: Text(name),
-                        subtitle: Text(config.summary),
-                        trailing: Switch(
-                          value: config.enabled,
-                          onChanged: (value) => ref
-                              .read(blockListProvider.notifier)
-                              .setEnabled(pkg, value),
-                        ),
-                        onTap: () => _editConfig(context, ref, pkg, name, config),
-                        onLongPress: () => _confirmRemove(context, ref, pkg, name),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => const AppPickerScreen(),
-            ),
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  Future<void> _editConfig(BuildContext context, WidgetRef ref, String pkg,
-      String name, BlockConfig current) async {
-    final updated =
-        await showConfigDialog(context, appName: name, initial: current);
-    if (updated == null) return;
-    await ref.read(blockListProvider.notifier).putApp(pkg, updated);
-  }
-
-  void _confirmRemove(
-      BuildContext context, WidgetRef ref, String pkg, String name) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Remove $name?'),
-        content: const Text('This app will be removed from the block list.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              ref.read(blockListProvider.notifier).removeApp(pkg);
-              Navigator.of(dialogContext).pop();
-            },
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A plain warning card shown until both required permissions are granted.
-/// Each missing permission gets its own button that opens the right settings
-/// screen; the banner disappears once everything is granted.
-class _PermissionBanner extends ConsumerWidget {
-  const _PermissionBanner();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final permsAsync = ref.watch(permissionsProvider);
-
-    return permsAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-      data: (perms) {
-        if (perms.allGranted) return const SizedBox.shrink();
-
-        return Container(
-          width: double.infinity,
-          color: Colors.amber.shade100,
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      children: [
+        PageHeader(
+          title: 'BlockX',
+          showBack: false,
+          leading: Row(
             children: [
-              const Text(
-                'Setup needed for blocking to work:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              if (!perms.accessibility)
-                _PermissionRow(
-                  label:
-                      'Enable the "BlockX" accessibility service (detects when a blocked app opens).',
-                  buttonText: 'Enable Accessibility',
-                  onPressed: () async {
-                    await BlockPlatform.openAccessibilitySettings();
-                  },
-                ),
-              if (!perms.overlay)
-                _PermissionRow(
-                  label:
-                      'Allow "Draw over other apps" (shows the blocked screen).',
-                  buttonText: 'Allow Overlay',
-                  onPressed: () async {
-                    await BlockPlatform.openOverlaySettings();
-                  },
-                ),
-              if (!perms.usageAccess)
-                _PermissionRow(
-                  label:
-                      'Allow "Usage access" (reliably detects the app in front, '
-                      'even under Game Space). Find "BlockX" in the list and turn it on.',
-                  buttonText: 'Allow Usage Access',
-                  onPressed: () async {
-                    await BlockPlatform.openUsageAccessSettings();
-                  },
-                ),
+              const SizedBox(width: AppSpacing.sm),
+              Image.asset('assets/logo.png', width: 26, height: 26),
+              const SizedBox(width: AppSpacing.sm),
+              Text('BLOCKX',
+                  style: AppText.hero.copyWith(fontSize: 24, letterSpacing: 2)),
             ],
           ),
-        );
-      },
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.md),
+              child: _CountBadge(count: activeApps + featuresOn + sites.length),
+            ),
+          ],
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screenPad,
+              0,
+              AppSpacing.screenPad,
+              AppSpacing.xxxl,
+            ),
+            children: [
+              Consumer(
+                builder: (context, ref, _) {
+                  final perms = ref.watch(permissionsProvider);
+                  final granted = perms.maybeWhen(
+                    data: (p) => p.allGranted,
+                    orElse: () => true,
+                  );
+                  if (granted) return const SizedBox.shrink();
+                  return const Padding(
+                    padding: EdgeInsets.only(top: AppSpacing.lg),
+                    child: PermissionBanner(),
+                  );
+                },
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              _HeroCard(
+                activeApps: activeApps,
+                sites: sites.length,
+                features: featuresOn,
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Text('MANAGE', style: AppText.sectionHeader),
+              const SizedBox(height: AppSpacing.md),
+              _NavCard(
+                icon: Icons.apps,
+                title: 'Block Apps',
+                value: activeApps == 0
+                    ? 'None blocked'
+                    : '$activeApps active',
+                onTap: () => _push(const BlockedAppsScreen()),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _NavCard(
+                icon: Icons.smart_display_outlined,
+                title: 'Shorts & Reels',
+                value: featuresOn == 0 ? 'None on' : '$featuresOn of 3 on',
+                onTap: () => _push(const FeaturesScreen()),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _NavCard(
+                icon: Icons.public,
+                title: 'Blocked Sites',
+                value: sites.isEmpty ? 'None blocked' : '${sites.length} blocked',
+                onTap: () => _push(const SitesScreen()),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _PermissionRow extends StatelessWidget {
-  const _PermissionRow({
-    required this.label,
-    required this.buttonText,
-    required this.onPressed,
+/// A hero panel that fills the top of the dashboard with the live "locked down"
+/// summary — real counts, one glow, no filler.
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({
+    required this.activeApps,
+    required this.sites,
+    required this.features,
   });
 
-  final String label;
-  final String buttonText;
-  final VoidCallback onPressed;
+  final int activeApps;
+  final int sites;
+  final int features;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+    final total = activeApps + sites + features;
+    return ClipRRect(
+      borderRadius: AppRadius.mdAll,
+      child: GlowBackground(
+        alignment: Alignment.topRight,
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.mdAll,
+            border: Border.all(color: AppColors.borderRed),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.shield_moon_outlined,
+                      color: AppColors.red, size: 32),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(total == 0 ? 'ALL CLEAR' : 'LOCKED IN',
+                            style: AppText.title),
+                        const SizedBox(height: 2),
+                        Text(
+                          total == 0
+                              ? 'Nothing blocked yet — add your first.'
+                              : '$total distractions under control.',
+                          style: AppText.bodyDim,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                children: [
+                  _Stat(value: activeApps, label: 'Apps'),
+                  _StatDivider(),
+                  _Stat(value: features, label: 'Reels'),
+                  _StatDivider(),
+                  _Stat(value: sites, label: 'Sites'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  const _Stat({required this.value, required this.label});
+  final int value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label),
-          const SizedBox(height: 4),
-          ElevatedButton(onPressed: onPressed, child: Text(buttonText)),
+          Text('$value', style: AppText.heroNumber.copyWith(fontSize: 30)),
+          const SizedBox(height: 2),
+          Text(label.toUpperCase(), style: AppText.bodyDim),
         ],
+      ),
+    );
+  }
+}
+
+class _StatDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 1, height: 32, color: AppColors.border);
+  }
+}
+
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count});
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.red.withValues(alpha: 0.12),
+        borderRadius: AppRadius.smAll,
+        border: Border.all(color: AppColors.borderRed),
+      ),
+      child: Text(
+        '$count active',
+        style: AppText.bodyDim.copyWith(
+          color: AppColors.red,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _NavCard extends StatelessWidget {
+  const _NavCard({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.dark2,
+      borderRadius: AppRadius.mdAll,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        splashColor: AppColors.borderRed,
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.mdAll,
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.red.withValues(alpha: 0.1),
+                  borderRadius: AppRadius.smAll,
+                ),
+                child: Icon(icon, color: AppColors.red, size: 24),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: AppText.label),
+                    const SizedBox(height: 2),
+                    Text(value, style: AppText.bodyDim),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: AppColors.textDim),
+            ],
+          ),
+        ),
       ),
     );
   }

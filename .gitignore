@@ -30,6 +30,9 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
+# Local Pub cache that landed inside the project dir — never commit it.
+pub-cache/
+/pub-cache/
 /build/
 /coverage/
 

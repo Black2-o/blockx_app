@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 
 import '../models/app_info.dart';
+import '../models/app_usage.dart';
 import '../models/block_config.dart';
 
 /// Thin Dart wrapper over the native Kotlin blocker (`MainActivity` +
@@ -24,6 +25,17 @@ class BlockPlatform {
         .toList()
       ..sort((a, b) =>
           a.appName.toLowerCase().compareTo(b.appName.toLowerCase()));
+  }
+
+  /// Today's per-app foreground time (read-only, from Android UsageStats).
+  /// Requires the already-granted Usage Access permission. Additive — does not
+  /// touch any blocking config.
+  static Future<List<AppUsage>> getUsageStats() async {
+    final List<dynamic> result =
+        await _channel.invokeMethod('getUsageStats') as List<dynamic>;
+    return result
+        .map((e) => AppUsage.fromMap(e as Map<dynamic, dynamic>))
+        .toList();
   }
 
   /// Shares the full config of the currently-ON apps with the native service,

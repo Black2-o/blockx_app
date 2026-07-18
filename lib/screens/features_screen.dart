@@ -3,65 +3,159 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/block_config.dart';
 import '../providers/block_providers.dart';
-import 'config_dialog.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/cards.dart';
+import '../widgets/celebration.dart';
+import '../widgets/state_indicators.dart';
+import 'config_sheet.dart';
 
-/// Manage in-app feature blocks (Shorts / Reels). Each has an on/off switch and,
-/// like an app, can be **Direct-block** or **Time-limited** (opens/day + minutes
-/// each). Tap a row to choose; the switch turns it on/off.
+/// Manage in-app feature blocks (Shorts / Reels). Turning one on always asks for
+/// the block type first (Strict / Limit), just like adding an app. Backed by the
+/// frozen [featureBlocksProvider] with the unchanged `yt_shorts` / `ig_reels` /
+/// `fb_reels` keys.
 class FeaturesScreen extends ConsumerWidget {
-  const FeaturesScreen({super.key});
+  const FeaturesScreen({super.key, this.embedded = false});
 
-  // (key, label) — key must match native `featureApps` + FeatureStore.keys.
-  static const List<(String, String)> _items = [
-    ('yt_shorts', 'YouTube Shorts'),
-    ('ig_reels', 'Instagram Reels'),
-    ('fb_reels', 'Facebook Reels'),
+  final bool embedded;
+
+  // (key, label, icon) — key must match native `featureApps` + FeatureStore.
+  static const List<(String, String, IconData)> _items = [
+    ('yt_shorts', 'YouTube Shorts', Icons.smart_display_outlined),
+    ('ig_reels', 'Instagram Reels', Icons.movie_outlined),
+    ('fb_reels', 'Facebook Reels', Icons.slideshow_outlined),
   ];
+
+  Future<void> _configure(
+    BuildContext context,
+    WidgetRef ref,
+    String key,
+    String label,
+    BlockConfig current,
+  ) async {
+    final updated = await showRuleConfigSheet(
+      context,
+      appName: label,
+      initial: current.copyWith(enabled: true),
+    );
+    if (updated == null) return;
+    await ref
+        .read(featureBlocksProvider.notifier)
+        .setConfig(key, updated.copyWith(enabled: true));
+    if (!context.mounted) return;
+    // Only celebrate when it wasn't already on (a fresh block).
+    if (!current.enabled) {
+      await showBlockCelebration(
+        context,
+        title: label,
+        subtitle: updated.mode == BlockMode.timed ? 'Limited.' : 'Locked in.',
+        accent:
+            updated.mode == BlockMode.timed ? AppColors.amber : AppColors.red,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final configs = ref.watch(featureBlocksProvider);
     final notifier = ref.read(featureBlocksProvider.notifier);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Block in-app features')),
-      body: ListView(
+    final body = ListView(
+      padding: EdgeInsets.fromLTRB(
+        embedded ? 0 : AppSpacing.screenPad,
+        AppSpacing.lg,
+        embedded ? 0 : AppSpacing.screenPad,
+        AppSpacing.xl,
+      ),
+      children: [
+        Text(
+          'Blocks just the short-video section inside these apps — the rest of '
+          'the app keeps working. Tap one to pick Strict Block or Limit.',
+          style: AppText.bodyDim,
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        for (final (key, label, icon) in _items) ...[
+          _FeatureCard(
+            label: label,
+            icon: icon,
+            config: configs[key] ?? const BlockConfig(enabled: false),
+            onTap: () => _configure(context, ref, key, label,
+                configs[key] ?? const BlockConfig(enabled: false)),
+            onTurnOff: () => notifier.setEnabled(key, false),
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ],
+      ],
+    );
+
+    if (embedded) return body;
+    return AppScaffold(title: 'Shorts & Reels', padded: false, body: body);
+  }
+}
+
+class _FeatureCard extends StatelessWidget {
+  const _FeatureCard({
+    required this.label,
+    required this.icon,
+    required this.config,
+    required this.onTap,
+    required this.onTurnOff,
+  });
+
+  final String label;
+  final IconData icon;
+  final BlockConfig config;
+  final VoidCallback onTap;
+  final VoidCallback onTurnOff;
+
+  @override
+  Widget build(BuildContext context) {
+    final on = config.enabled;
+    return AppCard(
+      onTap: onTap,
+      glow: on,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      child: Row(
         children: [
-          const Padding(
-            padding: EdgeInsets.all(12),
-            child: Text(
-              'Blocks just the short-video section inside these apps — the rest '
-              'of the app keeps working. Turn one on with the switch, then tap '
-              'the row to make it always-blocked or time-limited (opens/day + '
-              'minutes each). Time-limited shows a floating timer while you watch '
-              'and bounces you out when the daily limit is used up.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+          Icon(icon, color: on ? AppColors.red : AppColors.textDim, size: 24),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: AppText.label),
+                const SizedBox(height: AppSpacing.xs),
+                Row(
+                  children: [
+                    StateBadge.forConfig(config),
+                    const SizedBox(width: AppSpacing.sm),
+                    Flexible(
+                      child: Text(
+                        on ? config.summary : 'Tap to block',
+                        style: AppText.bodyDim,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          for (final (key, label) in _items)
-            ListTile(
-              title: Text(label),
-              subtitle: Text(
-                (configs[key] ?? const BlockConfig(enabled: false)).enabled
-                    ? (configs[key] ?? const BlockConfig(enabled: false)).summary
-                    : 'Off',
-              ),
-              trailing: Switch(
-                value:
-                    (configs[key] ?? const BlockConfig(enabled: false)).enabled,
-                onChanged: (v) => notifier.setEnabled(key, v),
-              ),
-              onTap: () async {
-                final current =
-                    configs[key] ?? const BlockConfig(enabled: false);
-                final updated = await showConfigDialog(
-                  context,
-                  appName: label,
-                  initial: current,
-                );
-                if (updated != null) await notifier.setConfig(key, updated);
-              },
-            ),
+          const SizedBox(width: AppSpacing.sm),
+          if (on)
+            IconButton(
+              icon: const Icon(Icons.close, color: AppColors.textDim),
+              tooltip: 'Turn off',
+              onPressed: onTurnOff,
+            )
+          else
+            const Icon(Icons.chevron_right, color: AppColors.textDim),
         ],
       ),
     );

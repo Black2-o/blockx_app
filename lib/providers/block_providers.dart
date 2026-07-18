@@ -4,6 +4,7 @@ import '../data/block_store.dart';
 import '../data/feature_store.dart';
 import '../data/site_store.dart';
 import '../models/app_info.dart';
+import '../models/app_usage.dart';
 import '../models/block_config.dart';
 import '../services/block_platform.dart';
 
@@ -22,6 +23,13 @@ final installedAppsProvider = FutureProvider<List<AppInfo>>((ref) {
 final blockListProvider =
     StateNotifierProvider<BlockListNotifier, Map<String, BlockConfig>>((ref) {
   return BlockListNotifier(ref.watch(blockStoreProvider));
+});
+
+/// Today's per-app screen time for the Progress screen (read-only native call).
+/// Auto-disposes so it re-fetches fresh each time the Progress tab is opened.
+final usageStatsProvider =
+    FutureProvider.autoDispose<List<AppUsage>>((ref) {
+  return BlockPlatform.getUsageStats();
 });
 
 /// Whether the permissions the blocker needs are granted.

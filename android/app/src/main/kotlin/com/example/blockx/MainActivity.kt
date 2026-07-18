@@ -1,6 +1,7 @@
 package com.example.blockx
 
 import android.app.AppOpsManager
+import android.app.usage.UsageStatsManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -8,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Process
 import android.provider.Settings
+import java.util.Calendar
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -34,6 +36,10 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "getInstalledApps" -> result.success(getInstalledApps())
+
+                    // Read-only: today's per-app screen time for the Progress
+                    // screen. Additive; does not affect any blocking rule.
+                    "getUsageStats" -> result.success(getUsageStats())
 
                     "setConfigs" -> {
                         val configsJson = call.argument<String>("configsJson") ?: "{}"
@@ -114,6 +120,51 @@ class MainActivity : FlutterActivity() {
             apps.add(mapOf("appName" to label, "packageName" to pkg))
         }
         return apps
+    }
+
+    /**
+     * Today's foreground time per app (ms), from [UsageStatsManager]. Read-only;
+     * requires the already-granted Usage Access permission. Returns a list of
+     * maps `{packageName, appName, totalTimeMs}` sorted by time desc. Additive —
+     * touches no blocking config or runtime state.
+     */
+    private fun getUsageStats(): List<Map<String, Any>> {
+        val usm = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+            ?: return emptyList()
+
+        val end = System.currentTimeMillis()
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val start = cal.timeInMillis
+
+        val stats = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, start, end)
+            ?: return emptyList()
+
+        val totals = HashMap<String, Long>()
+        for (u in stats) {
+            if (u.totalTimeInForeground > 0L) {
+                totals[u.packageName] =
+                    (totals[u.packageName] ?: 0L) + u.totalTimeInForeground
+            }
+        }
+
+        val pm = packageManager
+        val out = ArrayList<Map<String, Any>>()
+        for ((pkg, ms) in totals) {
+            if (pkg == packageName) continue
+            val label = try {
+                pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
+            } catch (e: Exception) {
+                pkg
+            }
+            out.add(mapOf("packageName" to pkg, "appName" to label, "totalTimeMs" to ms))
+        }
+        out.sortByDescending { it["totalTimeMs"] as Long }
+        return out.take(25)
     }
 
     /**

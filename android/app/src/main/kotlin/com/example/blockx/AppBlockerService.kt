@@ -10,6 +10,8 @@ import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Rect
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -901,6 +903,10 @@ class AppBlockerService : AccessibilityService() {
             gravity = Gravity.CENTER_VERTICAL
         }
 
+        // BlockX palette (matches lib/theme/app_colors.dart).
+        val cRed = 0xFFE8000D.toInt()
+        val cText = 0xFFF0E0E0.toInt()
+
         val icon = ImageView(this).apply {
             setImageDrawable(
                 try {
@@ -910,27 +916,55 @@ class AppBlockerService : AccessibilityService() {
                     null
                 },
             )
-            val size = dp(44)
+            // Smaller, sitting in a neat rounded chip with a subtle red edge.
+            val size = dp(38)
             layoutParams = LinearLayout.LayoutParams(size, size)
-            // No background/padding — show only the icon, no dark box around it.
+            val pad = dp(6)
+            setPadding(pad, pad, pad, pad)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(0xF0111111.toInt())
+                setStroke(dp(1), 0x66E8000D.toInt())
+            }
         }
 
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             visibility = View.GONE
-            setBackgroundColor(Color.argb(220, 0, 0, 0))
-            setPadding(dp(12), dp(8), dp(12), dp(8))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(14).toFloat()
+                setColor(0xF0111111.toInt())
+                setStroke(dp(1), 0x22FFFFFF.toInt())
+            }
+            setPadding(dp(14), dp(10), dp(14), dp(10))
         }
         val opens = TextView(this).apply {
-            setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTextColor(cText)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
         }
         val time = TextView(this).apply {
-            setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTextColor(cText)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTypeface(Typeface.DEFAULT_BOLD)
         }
         val endNow = Button(this).apply {
             text = "End now"
+            isAllCaps = true
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTypeface(Typeface.DEFAULT_BOLD)
+            stateListAnimator = null
+            minWidth = 0
+            minHeight = 0
+            setPadding(dp(16), dp(6), dp(16), dp(6))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(8).toFloat()
+                setColor(cRed)
+            }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(8) }
             setOnClickListener {
                 BlockRepository.endSession(this@AppBlockerService, pkg)
                 hideFloating()

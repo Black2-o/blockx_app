@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- BlockX outermost app background (matches lib/theme/app_colors.dart). -->
+    <color name="blockx_dark">#FF080808</color>
 </resources>
