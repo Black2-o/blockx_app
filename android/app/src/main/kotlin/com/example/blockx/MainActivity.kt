@@ -12,6 +12,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.os.Process
 import android.provider.Settings
 import java.io.ByteArrayOutputStream
@@ -52,6 +53,12 @@ class MainActivity : FlutterActivity() {
                         getAppIcon(call.argument<String>("package") ?: ""),
                     )
 
+                    // Read-only: a single app's display label (cheap; avoids
+                    // enumerating every installed app just to name one).
+                    "getAppLabel" -> result.success(
+                        getAppLabel(call.argument<String>("package") ?: ""),
+                    )
+
                     "setConfigs" -> {
                         val configsJson = call.argument<String>("configsJson") ?: "{}"
                         saveConfigs(configsJson)
@@ -72,6 +79,17 @@ class MainActivity : FlutterActivity() {
                         getSharedPreferences("block_prefs", Context.MODE_PRIVATE)
                             .edit()
                             .putString("feature_blocks_json", featuresJson)
+                            .apply()
+                        result.success(true)
+                    }
+
+                    // Mirror the UI-only block streaks to native (id -> streak
+                    // start epoch-millis) so the block screen can show them.
+                    "setStreaks" -> {
+                        val streaksJson = call.argument<String>("streaksJson") ?: "{}"
+                        getSharedPreferences("block_prefs", Context.MODE_PRIVATE)
+                            .edit()
+                            .putString("streaks_json", streaksJson)
                             .apply()
                         result.success(true)
                     }
@@ -105,6 +123,14 @@ class MainActivity : FlutterActivity() {
                             Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
                                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                         )
+                        result.success(true)
+                    }
+
+                    "isIgnoringBatteryOptimizations" ->
+                        result.success(isIgnoringBatteryOptimizations())
+
+                    "openBatteryOptimizationSettings" -> {
+                        openBatteryOptimizationSettings()
                         result.success(true)
                     }
 
@@ -179,9 +205,15 @@ class MainActivity : FlutterActivity() {
         }
 
         val pm = packageManager
+        val launchers = launcherPackages()
         val out = ArrayList<Map<String, Any>>()
         for ((pkg, ms) in totals) {
             if (pkg == packageName || ms < 1000L) continue // skip self + <1s blips
+            // Skip home screens / launchers (the "Quickstep" entry on Pixel/AOSP
+            // and every OEM launcher) — that's not an app the user "used".
+            if (pkg in launchers) continue
+            val lower = pkg.lowercase()
+            if (lower.contains("launcher") || lower.contains("quickstep")) continue
             val label = try {
                 pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
             } catch (e: Exception) {
@@ -191,6 +223,59 @@ class MainActivity : FlutterActivity() {
         }
         out.sortByDescending { it["totalTimeMs"] as Long }
         return out.take(25)
+    }
+
+    /**
+     * Every home-screen / launcher package to hide from Screen Time. Resolves the
+     * device's actual HOME activities (covers whatever launcher this phone uses)
+     * and adds the common OEM launcher/recents packages ("Quickstep" lives in
+     * these). The substring filter in [getUsageStats] catches any others.
+     */
+    private fun launcherPackages(): Set<String> {
+        val set = HashSet<String>()
+        try {
+            val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+            for (ri in packageManager.queryIntentActivities(home, 0)) {
+                ri.activityInfo?.packageName?.let { set.add(it) }
+            }
+        } catch (_: Exception) {
+        }
+        set.addAll(
+            listOf(
+                "com.android.systemui",
+                "com.google.android.apps.nexuslauncher",
+                "com.android.launcher",
+                "com.android.launcher2",
+                "com.android.launcher3",
+                "com.android.quickstep",
+                "com.sec.android.app.launcher",   // Samsung One UI
+                "com.miui.home",                  // Xiaomi
+                "com.mi.android.globallauncher",
+                "com.oppo.launcher",              // Oppo
+                "com.coloros.launcher",           // Oppo/realme ColorOS
+                "com.realme.launcher",
+                "com.oneplus.launcher",           // OnePlus
+                "com.transsion.XOSLauncher",      // Tecno/Infinix
+                "com.huawei.android.launcher",    // Huawei/Honor
+                "com.vivo.launcher",              // Vivo
+                "com.bbk.launcher2",              // Vivo/iQOO
+                "com.microsoft.launcher",
+                "com.teslacoilsw.launcher",       // Nova
+            ),
+        )
+        return set
+    }
+
+    /** An app's display label, or the package name if it can't be resolved. */
+    private fun getAppLabel(pkg: String): String {
+        if (pkg.isEmpty()) return pkg
+        return try {
+            packageManager.getApplicationLabel(
+                packageManager.getApplicationInfo(pkg, 0),
+            ).toString()
+        } catch (e: Exception) {
+            pkg
+        }
     }
 
     /** An app's launcher icon as PNG bytes (~96px), or null. Read-only. */
@@ -242,6 +327,35 @@ class MainActivity : FlutterActivity() {
         ) ?: return false
 
         return enabled.split(':').any { it.equals(expected, ignoreCase = true) }
+    }
+
+    /** True if this app is already exempt from battery optimization. */
+    private fun isIgnoringBatteryOptimizations(): Boolean {
+        val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return true
+        return pm.isIgnoringBatteryOptimizations(packageName)
+    }
+
+    /**
+     * Ask the system to exempt us from battery optimization. Prefers the direct
+     * "allow?" dialog (ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS); if the OEM
+     * blocks that, falls back to the full battery-optimization list screen.
+     */
+    private fun openBatteryOptimizationSettings() {
+        val direct = Intent(
+            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            Uri.parse("package:$packageName"),
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            startActivity(direct)
+        } catch (_: Exception) {
+            try {
+                startActivity(
+                    Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
+            } catch (_: Exception) {
+            }
+        }
     }
 
     /** True if the user granted "Usage access" to this app. */

@@ -839,13 +839,16 @@ class AppBlockerService : AccessibilityService() {
     private var floatingPanel: View? = null
     private var floatingPackage: String? = null
     private var floatingExpanded = false
-    private var floatingOpensText: TextView? = null
     private var floatingTimeText: TextView? = null
 
+    // Auto-collapse the expanded pill back to just the logo after a short while.
+    private var collapseRunnable: Runnable? = null
+    private val autoCollapseMs = 4000L
+
     // Remembered position between rebuilds: which side edge it's parked on and
-    // its vertical offset. Starts parked on the right (matching the old fixed
-    // spot). -1 y means "not placed yet — use the default".
-    private var floatingIsLeftEdge = false
+    // its vertical offset. Defaults to the LEFT edge; the user can drag it to the
+    // right and that choice is then remembered. -1 y means "not placed yet".
+    private var floatingIsLeftEdge = true
     private var floatingY = -1
 
     // Drag state for the touch handler (tap = expand, drag = move + snap).
@@ -907,58 +910,82 @@ class AppBlockerService : AccessibilityService() {
         val cRed = 0xFFE8000D.toInt()
         val cText = 0xFFF0E0E0.toInt()
 
+        // Collapsed handle: BlockX's own logo, and ONLY the logo — the adaptive
+        // icon's foreground layer, which is transparent (no white background
+        // square). Parked half-tucked against the screen edge (see anchorToEdge).
         val icon = ImageView(this).apply {
+            setImageResource(R.drawable.ic_launcher_foreground)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            val size = dp(42)
+            layoutParams = LinearLayout.LayoutParams(size, size)
+        }
+
+        // Expanded pill: a single rounded bar — [app icon] [time left] [Relock].
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = View.GONE
+            background = GradientDrawable().apply {
+                cornerRadius = dp(15).toFloat()
+                setColor(0xF0111111.toInt())
+                setStroke(dp(1), 0x22FFFFFF.toInt())
+            }
+            // A bit more breathing room around the whole row (icon · time · button).
+            setPadding(dp(11), dp(7), dp(9), dp(7))
+        }
+
+        // The blocked app's / feature's own icon, small. Tapping it collapses
+        // the pill back to the logo handle.
+        val appIcon = ImageView(this).apply {
             setImageDrawable(
                 try {
-                    // Always show BlockX's own icon, never the blocked app's.
-                    packageManager.getApplicationIcon(packageName)
+                    packageManager.getApplicationIcon(iconPackageFor(pkg))
                 } catch (_: Exception) {
                     null
                 },
             )
-            // Just the icon — no background chip, no padding.
-            val size = dp(44)
+            val size = dp(24)
             layoutParams = LinearLayout.LayoutParams(size, size)
+            setOnClickListener { toggleFloatingPanel() }
         }
 
-        val panel = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            visibility = View.GONE
-            background = GradientDrawable().apply {
-                cornerRadius = dp(12).toFloat()
-                setColor(0xF0111111.toInt())
-                setStroke(dp(1), 0x22FFFFFF.toInt())
-            }
-            setPadding(dp(12), dp(8), dp(12), dp(8))
-        }
-        val opens = TextView(this).apply {
-            setTextColor(0xB3F0E0E0.toInt())
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-        }
         val time = TextView(this).apply {
             setTextColor(cText)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setTypeface(Typeface.DEFAULT_BOLD)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                marginStart = dp(7)
+                marginEnd = dp(8)
+            }
         }
-        val endNow = Button(this).apply {
-            text = "End"
+
+        val relock = Button(this).apply {
+            text = "Relock"
             isAllCaps = true
             setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
             setTypeface(Typeface.DEFAULT_BOLD)
             stateListAnimator = null
             minWidth = 0
             minHeight = 0
-            setPadding(dp(14), dp(3), dp(14), dp(3))
+            minimumWidth = 0
+            minimumHeight = 0
+            // Kill the extra vertical space Button/TextView reserve for font
+            // metrics + line spacing, so the pill hugs the text top-and-bottom.
+            includeFontPadding = false
+            setLineSpacing(0f, 1f)
+            setPadding(dp(10), dp(4), dp(10), dp(4))
             background = GradientDrawable().apply {
-                cornerRadius = dp(6).toFloat()
+                cornerRadius = dp(3).toFloat()
                 setColor(cRed)
             }
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(6) }
+            )
             setOnClickListener {
                 BlockRepository.endSession(this@AppBlockerService, pkg)
                 hideFloating()
@@ -977,23 +1004,25 @@ class AppBlockerService : AccessibilityService() {
                 }
             }
         }
-        panel.addView(opens)
+        panel.addView(appIcon)
         panel.addView(time)
-        panel.addView(endNow)
+        panel.addView(relock)
 
-        floatingOpensText = opens
         floatingTimeText = time
         floatingIcon = icon
         floatingPanel = panel
 
         // Fixed child order: panel then icon (we never mutate the live overlay's
-        // hierarchy — that caused a null-child insets crash). anchorToEdge()
-        // repositions the whole row against the parked edge so it stays
-        // on-screen when the panel expands.
+        // hierarchy — that caused a null-child insets crash). Expanding hides the
+        // icon and shows the pill; anchorToEdge() re-pins the whole row.
         row.addView(panel)
         row.addView(icon)
         return row
     }
+
+    /** The package whose launcher icon represents a session (feature key -> host app). */
+    private fun iconPackageFor(id: String): String =
+        featureApps.entries.firstOrNull { it.value == id }?.key ?: id
 
     /** Drag to move, release to snap to the nearest side edge; tap = expand. */
     @android.annotation.SuppressLint("ClickableViewAccessibility")
@@ -1060,11 +1089,21 @@ class AppBlockerService : AccessibilityService() {
         updateLayout(view, params)
     }
 
-    /** Pin x flush against the parked edge, using the widget's current width. */
+    /**
+     * Pin x against the parked edge, using the widget's current width. Expanded,
+     * the pill sits flush and fully on-screen; collapsed, the logo handle is
+     * tucked ~20% behind the edge so it sits out of the way.
+     */
     private fun anchorToEdge() {
         val view = floatingView ?: return
         val params = floatingParams ?: return
-        params.x = if (floatingIsLeftEdge) 0 else (screenWidthPx() - view.width).coerceAtLeast(0)
+        val w = view.width
+        if (floatingExpanded) {
+            params.x = if (floatingIsLeftEdge) 0 else (screenWidthPx() - w).coerceAtLeast(0)
+        } else {
+            val tuck = (w * 0.2f).toInt()
+            params.x = if (floatingIsLeftEdge) -tuck else (screenWidthPx() - w + tuck)
+        }
     }
 
     private fun updateLayout(view: View, params: WindowManager.LayoutParams) {
@@ -1082,7 +1121,11 @@ class AppBlockerService : AccessibilityService() {
     private fun toggleFloatingPanel() {
         floatingExpanded = !floatingExpanded
         floatingPanel?.visibility = if (floatingExpanded) View.VISIBLE else View.GONE
+        // Expanded shows only the pill; collapsed shows only the logo handle.
+        floatingIcon?.visibility = if (floatingExpanded) View.GONE else View.VISIBLE
         refreshFloating()
+        // While expanded, arm a timer to auto-close it; collapsing cancels it.
+        if (floatingExpanded) scheduleAutoCollapse() else cancelAutoCollapse()
         // The panel changes the widget's width; re-pin it to the parked edge
         // once the new size is measured so it never runs off-screen.
         val view = floatingView ?: return
@@ -1092,18 +1135,30 @@ class AppBlockerService : AccessibilityService() {
         }
     }
 
+    /** Auto-close the expanded pill after [autoCollapseMs], back to just the logo. */
+    private fun scheduleAutoCollapse() {
+        cancelAutoCollapse()
+        val r = Runnable { if (floatingExpanded) toggleFloatingPanel() }
+        collapseRunnable = r
+        handler.postDelayed(r, autoCollapseMs)
+    }
+
+    private fun cancelAutoCollapse() {
+        collapseRunnable?.let { handler.removeCallbacks(it) }
+        collapseRunnable = null
+    }
+
     private fun refreshFloating() {
         val pkg = floatingPackage ?: return
         if (!floatingExpanded) return
-        val opensLeft = BlockRepository.opensLeftToday(this, pkg)
         val msLeft = BlockRepository.sessionMillisLeft(this, pkg)
-        val mins = (msLeft / 60_000L).toInt()
-        val secs = ((msLeft % 60_000L) / 1000L).toInt()
-        floatingOpensText?.text = "$opensLeft opens left"
-        floatingTimeText?.text = "%d:%02d".format(mins, secs)
+        // Minutes remaining, rounded up (at least 1 while any time is left).
+        val mins = if (msLeft <= 0) 0 else ((msLeft + 59_999L) / 60_000L).toInt()
+        floatingTimeText?.text = "${mins}m"
     }
 
     private fun hideFloating() {
+        cancelAutoCollapse()
         val view = floatingView ?: return
         try {
             (getSystemService(Context.WINDOW_SERVICE) as? WindowManager)?.removeView(view)
@@ -1115,7 +1170,6 @@ class AppBlockerService : AccessibilityService() {
         floatingPanel = null
         floatingPackage = null
         floatingExpanded = false
-        floatingOpensText = null
         floatingTimeText = null
     }
 

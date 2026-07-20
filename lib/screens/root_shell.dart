@@ -5,7 +5,7 @@ import '../widgets/app_bottom_nav.dart';
 import '../widgets/page_header.dart';
 import 'account_screen.dart';
 import 'home_screen.dart';
-import 'progress_screen.dart';
+import 'streak_screen.dart';
 
 /// The main app shell: three bottom-nav tabs (Home · Progress · Profile) in an
 /// [IndexedStack] so each keeps its state. Blocking apps / reels / sites is done
@@ -23,9 +23,9 @@ class _RootShellState extends State<RootShell> {
   static const _tabs = [
     NavTab(icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Home'),
     NavTab(
-        icon: Icons.insights_outlined,
-        activeIcon: Icons.insights,
-        label: 'Screen Time'),
+        icon: Icons.local_fire_department_outlined,
+        activeIcon: Icons.local_fire_department,
+        label: 'Streak'),
     NavTab(
         icon: Icons.person_outline, activeIcon: Icons.person, label: 'Profile'),
   ];
@@ -37,8 +37,7 @@ class _RootShellState extends State<RootShell> {
     const tabs = [
       // Home renders its own logo header.
       HomeDashboard(),
-      _TabWithHeader(
-          title: 'Screen Time', child: ProgressScreen(embedded: true)),
+      _TabWithHeader(title: 'Streak', child: StreakScreen(embedded: true)),
       _TabWithHeader(title: 'Profile', child: AccountScreen(embedded: true)),
     ];
 

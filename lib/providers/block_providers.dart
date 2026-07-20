@@ -41,15 +41,23 @@ final appIconProvider =
   return BlockPlatform.getAppIcon(packageName);
 });
 
+/// An app's display label, by package name — a cheap single-app lookup (cached),
+/// so we don't enumerate every installed app just to name a few.
+final appNameProvider = FutureProvider.family<String, String>((ref, packageName) {
+  return BlockPlatform.getAppLabel(packageName);
+});
+
 /// Whether the permissions the blocker needs are granted.
 final permissionsProvider = FutureProvider<BlockPermissions>((ref) async {
   final accessibility = await BlockPlatform.isAccessibilityEnabled();
   final overlay = await BlockPlatform.canDrawOverlays();
   final usageAccess = await BlockPlatform.hasUsageAccess();
+  final batteryOptimized = await BlockPlatform.isIgnoringBatteryOptimizations();
   return BlockPermissions(
     accessibility: accessibility,
     overlay: overlay,
     usageAccess: usageAccess,
+    batteryOptimized: batteryOptimized,
   );
 });
 
@@ -58,13 +66,24 @@ class BlockPermissions {
     required this.accessibility,
     required this.overlay,
     required this.usageAccess,
+    required this.batteryOptimized,
   });
 
   final bool accessibility;
   final bool overlay;
   final bool usageAccess;
 
+  /// Battery-optimization exemption. Recommended, not required — so it is NOT
+  /// part of [allGranted], but it still counts towards [needsSetup] so the
+  /// setup card can surface it.
+  final bool batteryOptimized;
+
+  /// The three permissions blocking genuinely can't work without.
   bool get allGranted => accessibility && overlay && usageAccess;
+
+  /// Whether the setup card should still be shown (a required permission is
+  /// missing, or the recommended battery exemption hasn't been granted yet).
+  bool get needsSetup => !allGranted || !batteryOptimized;
 }
 
 /// Provides the opened [SiteStore]. Overridden in `main()` once Hive is ready.

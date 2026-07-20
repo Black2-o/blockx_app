@@ -6,8 +6,10 @@ import 'data/account_store.dart';
 import 'data/block_store.dart';
 import 'data/feature_store.dart';
 import 'data/site_store.dart';
+import 'data/streak_store.dart';
 import 'providers/account_provider.dart';
 import 'providers/block_providers.dart';
+import 'providers/streak_provider.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -18,6 +20,7 @@ Future<void> main() async {
   final siteStore = await SiteStore.open();
   final featureStore = await FeatureStore.open();
   final accountStore = await AccountStore.open();
+  final streakStore = await StreakStore.open();
 
   runApp(
     ProviderScope(
@@ -26,6 +29,7 @@ Future<void> main() async {
         siteStoreProvider.overrideWithValue(siteStore),
         featureStoreProvider.overrideWithValue(featureStore),
         accountStoreProvider.overrideWithValue(accountStore),
+        streakStoreProvider.overrideWithValue(streakStore),
       ],
       child: const BlockApp(),
     ),

@@ -4,12 +4,14 @@ import android.app.Activity
 import android.content.Intent
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.view.WindowInsets
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -71,6 +73,14 @@ class BlockActivity : Activity() {
     private var isBackMode = false
     private var isFeature = false
 
+    // Human labels for feature keys (the interstitial's EXTRA_PACKAGE is a feature
+    // key like "ig_reels", not a real package). Kept in sync with AppBlockerService.
+    private val featureLabels = mapOf(
+        "yt_shorts" to "YouTube Shorts",
+        "ig_reels" to "Instagram Reels",
+        "fb_reels" to "Facebook Reels",
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         render(intent)
@@ -107,6 +117,13 @@ class BlockActivity : Activity() {
         root.addView(headline(if (isFeature) "Blocked" else "App Blocked"))
         root.addView(spacer(dp(12)))
         root.addView(bodyText(reason ?: "This app is blocked."))
+        val pkg = blockedPackage
+        if (pkg != null) {
+            // Timed apps/features that ran out of opens: show the (empty) count +
+            // dots too, so every timer-blocked screen looks the same.
+            addOpensStatus(root, pkg, cRed, showName = false)
+            addStreak(root, pkg)
+        }
         root.addView(flexSpacer())
         root.addView(
             primaryButton(if (isFeature) "Go back" else "Go to home screen", cRed) { leaveToHome() },
@@ -149,14 +166,13 @@ class BlockActivity : Activity() {
 
         val pkg = blockedPackage
         if (pkg != null) {
-            val left = BlockRepository.opensLeftToday(this, pkg)
-            root.addView(spacer(dp(12)))
-            root.addView(bodyText("Opens left today: $left"))
+            addOpensStatus(root, pkg, cAmber, showName = true)
+            addStreak(root, pkg)
         }
 
         root.addView(flexSpacer())
 
-        val open = primaryButton("Open (5)", cAmber) { onOpenTapped() }.apply {
+        val open = primaryButton("Open now (5)", cAmber) { onOpenTapped() }.apply {
             isEnabled = false
         }
         openButton = open
@@ -171,16 +187,105 @@ class BlockActivity : Activity() {
         return root
     }
 
+    /** The blocked app's name, or a human label for a feature key. */
+    private fun displayName(pkg: String?): String {
+        if (pkg == null) return "This app"
+        featureLabels[pkg]?.let { return it }
+        return try {
+            packageManager.getApplicationLabel(
+                packageManager.getApplicationInfo(pkg, 0),
+            ).toString()
+        } catch (_: Exception) {
+            "This app"
+        }
+    }
+
+    /**
+     * For a timed app/feature only: a "left/total" line plus the opens dots.
+     * [showName] prefixes the item's name (used on the interstitial, where the
+     * headline doesn't already name it). No-op for direct-blocked items.
+     */
+    private fun addOpensStatus(
+        root: LinearLayout,
+        id: String,
+        accent: Int,
+        showName: Boolean,
+    ) {
+        if (!BlockRepository.isTimed(this, id)) return
+        val left = BlockRepository.opensLeftToday(this, id)
+        val used = BlockRepository.opensUsedToday(this, id)
+        val total = left + used
+        root.addView(spacer(dp(16)))
+        val prefix = if (showName) "${displayName(id)}   " else ""
+        root.addView(bodyText("$prefix$left/$total left"))
+        if (total in 1..12) {
+            root.addView(spacer(dp(12)))
+            root.addView(opensDots(left, total, accent))
+        }
+    }
+
+    /** A "N days blocked" streak line, if this app/feature has a live streak. */
+    private fun addStreak(root: LinearLayout, id: String) {
+        val days = BlockRepository.streakDays(this, id)
+        if (days <= 0) return
+        root.addView(spacer(dp(16)))
+        root.addView(streakLine(days))
+    }
+
+    private fun streakLine(days: Int): TextView {
+        val noun = if (days == 1) "day" else "days"
+        return TextView(this).apply {
+            text = "🔥  $days $noun blocked"
+            setTextColor(cAmber)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            gravity = Gravity.CENTER
+            letterSpacing = 0.04f
+            typeface = oswald600 ?: Typeface.DEFAULT_BOLD
+        }
+    }
+
+    /**
+     * A horizontal row of dots for the daily opens: a filled dot for each open
+     * still remaining, a hollow ring for each already used.
+     */
+    private fun opensDots(left: Int, total: Int, accent: Int): View {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        val size = dp(13)
+        val gap = dp(6)
+        for (i in 0 until total) {
+            val filled = i < left
+            val dot = View(this).apply {
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    if (filled) {
+                        setColor(accent)
+                    } else {
+                        setColor(0x00000000)
+                        setStroke(dp(2), withAlpha(accent, 0x66))
+                    }
+                }
+                layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                    marginStart = if (i == 0) 0 else gap
+                }
+            }
+            row.addView(dot)
+        }
+        return row
+    }
+
     private fun startOpenCountdown() {
         countdown?.cancel()
         countdown = object : CountDownTimer(OPEN_DELAY_MS, 1_000L) {
             override fun onTick(msLeft: Long) {
                 val secs = (msLeft / 1000L).toInt() + 1
-                openButton?.text = "Open ($secs)"
+                openButton?.text = "Open now ($secs)"
             }
 
             override fun onFinish() {
-                openButton?.text = "Open"
+                openButton?.text = "Open now"
                 openButton?.isEnabled = true
             }
         }.start()
@@ -244,11 +349,32 @@ class BlockActivity : Activity() {
 
     /** Root: full-height column on the dark background with a soft radial glow.
      *  Content is centered by flex spacers; the action button sits at the bottom. */
+    @Suppress("DEPRECATION")
     private fun container(accent: Int): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         gravity = Gravity.CENTER_HORIZONTAL
         background = glow(accent)
-        setPadding(dp(28), dp(28), dp(28), dp(36))
+        val padH = dp(28)
+        val padTop = dp(28)
+        val padBottom = dp(40)
+        setPadding(padH, padTop, padH, padBottom)
+        // Keep the bottom action clear of the system nav bar / gesture pill (and
+        // content clear of the status bar) — on some OEMs the block screen draws
+        // edge-to-edge, so a fixed bottom padding left the button under the nav.
+        setOnApplyWindowInsetsListener { v, insets ->
+            val top: Int
+            val bottom: Int
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val bars = insets.getInsets(WindowInsets.Type.systemBars())
+                top = bars.top
+                bottom = bars.bottom
+            } else {
+                top = insets.systemWindowInsetTop
+                bottom = insets.systemWindowInsetBottom
+            }
+            v.setPadding(padH, padTop + top, padH, padBottom + bottom)
+            insets
+        }
     }
 
     /** A flexible (weight 1) spacer that expands to push content/buttons apart. */

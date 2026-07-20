@@ -30,12 +30,9 @@ class ProgressScreen extends ConsumerWidget {
         ? _UsageList(ref: ref)
         : _NeedsPermission(onGranted: () => ref.invalidate(permissionsProvider));
 
-    if (embedded) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPad),
-        child: content,
-      );
-    }
+    // Horizontal padding is applied inside the list/permission views so both the
+    // embedded tab and the standalone route get the same left/right gutters.
+    if (embedded) return content;
     return AppScaffold(title: 'Screen Time', body: content, padded: false);
   }
 }
@@ -82,9 +79,11 @@ class _UsageList extends StatelessWidget {
           final maxMs = list.first.totalTime.inMilliseconds;
 
           return ListView(
-            padding: const EdgeInsets.only(
-              top: AppSpacing.lg,
-              bottom: AppSpacing.xxxl,
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screenPad,
+              AppSpacing.lg,
+              AppSpacing.screenPad,
+              AppSpacing.xxxl,
             ),
             children: [
               _TotalCard(total: total, appCount: list.length),

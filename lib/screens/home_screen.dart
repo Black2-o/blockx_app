@@ -92,7 +92,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard>
                 builder: (context, ref, _) {
                   final perms = ref.watch(permissionsProvider);
                   final granted = perms.maybeWhen(
-                    data: (p) => p.allGranted,
+                    data: (p) => !p.needsSetup,
                     orElse: () => true,
                   );
                   if (granted) return const SizedBox.shrink();

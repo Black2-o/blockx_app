@@ -34,6 +34,13 @@ class BlockPlatform {
     return result as Uint8List?;
   }
 
+  /// An app's display label (read-only). Falls back to the package name.
+  static Future<String> getAppLabel(String packageName) async {
+    final result =
+        await _channel.invokeMethod('getAppLabel', {'package': packageName});
+    return (result as String?) ?? packageName;
+  }
+
   /// Today's per-app foreground time (read-only, from Android UsageStats).
   /// Requires the already-granted Usage Access permission. Additive — does not
   /// touch any blocking config.
@@ -75,6 +82,14 @@ class BlockPlatform {
         .invokeMethod('setFeatureBlocks', {'featuresJson': jsonEncode(payload)});
   }
 
+  /// Mirrors the UI-only block streaks to native (`id -> streak start epoch
+  /// millis`) so the native block screen can show a "N-day streak". Additive —
+  /// does not affect any blocking decision.
+  static Future<void> setStreaks(Map<String, int> startsMillis) async {
+    await _channel
+        .invokeMethod('setStreaks', {'streaksJson': jsonEncode(startsMillis)});
+  }
+
   /// Whether our Accessibility Service is enabled in system settings.
   static Future<bool> isAccessibilityEnabled() async {
     return await _channel.invokeMethod('isAccessibilityEnabled') as bool? ??
@@ -105,5 +120,18 @@ class BlockPlatform {
   /// Opens the system "Usage access" settings screen.
   static Future<void> openUsageAccessSettings() async {
     await _channel.invokeMethod('openUsageAccessSettings');
+  }
+
+  /// Whether this app is exempt from battery optimization. Recommended (not
+  /// required) — some OEMs kill the background accessibility service without it.
+  static Future<bool> isIgnoringBatteryOptimizations() async {
+    return await _channel.invokeMethod('isIgnoringBatteryOptimizations')
+            as bool? ??
+        true;
+  }
+
+  /// Opens the system prompt/screen to exempt this app from battery optimization.
+  static Future<void> openBatteryOptimizationSettings() async {
+    await _channel.invokeMethod('openBatteryOptimizationSettings');
   }
 }

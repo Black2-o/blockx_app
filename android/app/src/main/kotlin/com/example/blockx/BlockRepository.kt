@@ -4,6 +4,7 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -123,6 +124,42 @@ object BlockRepository {
     /** Config for an id that may be either an app package OR a feature key. */
     private fun anyConfig(ctx: Context, id: String): Config? =
         configFor(ctx, id) ?: featureConfigFor(ctx, id)
+
+    /** Whether an app/feature runs the timed (opens/session) flow vs. direct block. */
+    fun isTimed(ctx: Context, id: String): Boolean =
+        anyConfig(ctx, id)?.mode == "timed"
+
+    // ---- Block streaks (UI-only, mirrored from Flutter into `streaks_json`) ----
+
+    /**
+     * Whole days the current block streak for [id] has run (the day it started
+     * counts as day 1), or 0 if there's no streak. Matches the Flutter
+     * `StreakNotifier.daysFor` calculation (calendar-day difference).
+     */
+    fun streakDays(ctx: Context, id: String): Int {
+        val json = prefs(ctx).getString("streaks_json", "{}") ?: "{}"
+        return try {
+            val obj = JSONObject(json)
+            if (!obj.has(id)) return 0
+            val startMs = obj.getLong(id)
+            val days = ((midnight(System.currentTimeMillis()) - midnight(startMs)) /
+                86_400_000L).toInt() + 1
+            days.coerceAtLeast(0)
+        } catch (_: Exception) {
+            0
+        }
+    }
+
+    /** Epoch millis at local midnight of the day containing [ms]. */
+    private fun midnight(ms: Long): Long {
+        val c = Calendar.getInstance()
+        c.timeInMillis = ms
+        c.set(Calendar.HOUR_OF_DAY, 0)
+        c.set(Calendar.MINUTE, 0)
+        c.set(Calendar.SECOND, 0)
+        c.set(Calendar.MILLISECOND, 0)
+        return c.timeInMillis
+    }
 
     /**
      * Whether the given browser address-bar text points at a blocked site.

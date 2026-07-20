@@ -22,7 +22,7 @@ class PermissionBanner extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
       data: (perms) {
-        if (perms.allGranted) return const SizedBox.shrink();
+        if (!perms.needsSetup) return const SizedBox.shrink();
 
         return Container(
           width: double.infinity,
@@ -74,6 +74,15 @@ class PermissionBanner extends ConsumerWidget {
                       'Find "BlockX" in the list and turn it on.',
                   buttonText: 'Allow Usage Access',
                   onPressed: BlockPlatform.openUsageAccessSettings,
+                ),
+              if (!perms.batteryOptimized)
+                _PermissionRow(
+                  label:
+                      'Ignore battery optimization (recommended) — keeps blocking '
+                      'running in the background. Some phones need this or the '
+                      'blocker stops when the app is closed.',
+                  buttonText: 'Ignore Battery Optimization',
+                  onPressed: BlockPlatform.openBatteryOptimizationSettings,
                 ),
             ],
           ),

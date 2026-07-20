@@ -106,6 +106,11 @@ class _CelebrationState extends State<_Celebration>
       curve: const Interval(0.35, 0.7, curve: Curves.easeOut),
     );
 
+    final shock = CurvedAnimation(
+      parent: _c,
+      curve: const Interval(0.05, 0.5, curve: Curves.easeOut),
+    );
+
     return GestureDetector(
       onTap: () => Navigator.of(context).maybePop(),
       child: Center(
@@ -118,36 +123,42 @@ class _CelebrationState extends State<_Celebration>
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(
-                  width: 220,
-                  height: 220,
+                  width: 240,
+                  height: 240,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
+                      // expanding shockwave rings
+                      CustomPaint(
+                        size: const Size(240, 240),
+                        painter: _ShockwavePainter(widget.accent, shock.value),
+                      ),
                       // particle burst
                       CustomPaint(
-                        size: const Size(220, 220),
+                        size: const Size(240, 240),
                         painter: _BurstPainter(_particles, burst.value),
                       ),
                       // glowing badge
                       Transform.scale(
                         scale: scale,
                         child: Container(
-                          width: 108,
-                          height: 108,
+                          width: 112,
+                          height: 112,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: widget.accent.withValues(alpha: 0.15),
                             border: Border.all(color: widget.accent, width: 2),
                             boxShadow: [
                               BoxShadow(
-                                color: widget.accent.withValues(alpha: 0.4),
-                                blurRadius: 32,
-                                spreadRadius: 4,
+                                color: widget.accent
+                                    .withValues(alpha: 0.35 + 0.25 * (1 - shock.value)),
+                                blurRadius: 40,
+                                spreadRadius: 6,
                               ),
                             ],
                           ),
                           child: Icon(Icons.lock,
-                              color: widget.accent, size: 48),
+                              color: widget.accent, size: 50),
                         ),
                       ),
                     ],
@@ -186,6 +197,32 @@ class _Particle {
   final double distance;
   final double size;
   final Color color;
+}
+
+/// One or two rings expanding outward and fading — a shockwave from the badge.
+class _ShockwavePainter extends CustomPainter {
+  _ShockwavePainter(this.color, this.t);
+  final Color color;
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final maxR = size.width / 2;
+    for (var i = 0; i < 2; i++) {
+      final local = (t - i * 0.15).clamp(0.0, 1.0);
+      if (local <= 0) continue;
+      final r = maxR * local;
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3 * (1 - local)
+        ..color = color.withValues(alpha: (1 - local) * 0.5);
+      canvas.drawCircle(center, r, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ShockwavePainter old) => old.t != t;
 }
 
 class _BurstPainter extends CustomPainter {
