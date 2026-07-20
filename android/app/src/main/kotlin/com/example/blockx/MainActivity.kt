@@ -134,6 +134,22 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     }
 
+                    "getDeviceInfo" -> result.success(
+                        mapOf(
+                            "manufacturer" to Build.MANUFACTURER,
+                            "brand" to Build.BRAND,
+                            "model" to Build.MODEL,
+                            "sdkInt" to Build.VERSION.SDK_INT,
+                        ),
+                    )
+
+                    "openAppSettings" -> {
+                        openAppSettings()
+                        result.success(true)
+                    }
+
+                    "openAutoStartSettings" -> result.success(openAutoStartSettings())
+
                     else -> result.notImplemented()
                 }
             }
@@ -356,6 +372,88 @@ class MainActivity : FlutterActivity() {
             } catch (_: Exception) {
             }
         }
+    }
+
+    /** Open this app's system "App info" page (where "Allow restricted settings",
+     *  "Other permissions" and autostart toggles live on many OEMs). */
+    private fun openAppSettings() {
+        try {
+            startActivity(
+                Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:$packageName"),
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        } catch (_: Exception) {
+        }
+    }
+
+    /**
+     * Best-effort: open the OEM "Autostart / background start" manager so the
+     * accessibility service can relaunch itself after being killed. These screens
+     * are undocumented and vary by skin, so we try known components in turn and
+     * fall back to the app's own settings page. Returns true if a real OEM screen
+     * opened, false if we fell back.
+     */
+    private fun openAutoStartSettings(): Boolean {
+        val candidates = listOf(
+            // Xiaomi / Redmi / POCO (MIUI/HyperOS)
+            ComponentName(
+                "com.miui.securitycenter",
+                "com.miui.permcenter.autostart.AutoStartManagementActivity",
+            ),
+            // Oppo / realme / ColorOS
+            ComponentName(
+                "com.coloros.safecenter",
+                "com.coloros.safecenter.permission.startup.StartupAppListActivity",
+            ),
+            ComponentName(
+                "com.coloros.safecenter",
+                "com.coloros.safecenter.startupapp.StartupAppListActivity",
+            ),
+            ComponentName(
+                "com.oppo.safe",
+                "com.oppo.safe.permission.startup.StartupAppListActivity",
+            ),
+            // OnePlus
+            ComponentName(
+                "com.oneplus.security",
+                "com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity",
+            ),
+            // Vivo / iQOO
+            ComponentName(
+                "com.vivo.permissionmanager",
+                "com.vivo.permissionmanager.activity.BgStartUpManagerActivity",
+            ),
+            ComponentName(
+                "com.iqoo.secure",
+                "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity",
+            ),
+            // Huawei / Honor
+            ComponentName(
+                "com.huawei.systemmanager",
+                "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity",
+            ),
+            ComponentName(
+                "com.huawei.systemmanager",
+                "com.huawei.systemmanager.optimize.process.ProtectActivity",
+            ),
+        )
+        for (cn in candidates) {
+            val intent = Intent().apply {
+                component = cn
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            if (packageManager.resolveActivity(intent, 0) != null) {
+                try {
+                    startActivity(intent)
+                    return true
+                } catch (_: Exception) {
+                }
+            }
+        }
+        openAppSettings()
+        return false
     }
 
     /** True if the user granted "Usage access" to this app. */
