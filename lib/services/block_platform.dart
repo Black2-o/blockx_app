@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../models/app_info.dart';
 import '../models/app_usage.dart';
 import '../models/block_config.dart';
+import '../models/device_info.dart';
 
 /// Thin Dart wrapper over the native Kotlin blocker (`MainActivity` +
 /// `AppBlockerService`) via a single [MethodChannel].
@@ -133,5 +134,23 @@ class BlockPlatform {
   /// Opens the system prompt/screen to exempt this app from battery optimization.
   static Future<void> openBatteryOptimizationSettings() async {
     await _channel.invokeMethod('openBatteryOptimizationSettings');
+  }
+
+  /// Read-only device identity (Android `Build`), for per-OEM setup guidance.
+  static Future<DeviceInfo> getDeviceInfo() async {
+    final result = await _channel.invokeMethod('getDeviceInfo');
+    return DeviceInfo.fromMap((result as Map).cast<dynamic, dynamic>());
+  }
+
+  /// Opens this app's system "App info" page (Allow restricted settings / Other
+  /// permissions / autostart live here on many OEMs).
+  static Future<void> openAppSettings() async {
+    await _channel.invokeMethod('openAppSettings');
+  }
+
+  /// Best-effort: opens the OEM autostart / background-start manager. Returns
+  /// false (and falls back to App info) when no known OEM screen was found.
+  static Future<bool> openAutoStartSettings() async {
+    return await _channel.invokeMethod('openAutoStartSettings') as bool? ?? false;
   }
 }

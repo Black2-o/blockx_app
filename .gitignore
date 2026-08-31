@@ -46,3 +46,15 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Python / Selenium scraper related
+.env
+.env.*
+*.env
+venv/
+.venv/
+env/
+__pycache__/
+
+# Scraper data — keep the scripts, never commit the scraped data
+/scraper/data/

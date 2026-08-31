@@ -21,11 +21,6 @@ package com.example.blockx
  */
 object BuiltInBlocklist {
     val domains: List<String> = listOf(
-        // ── Add your permanent blocks here, one per line, e.g.: ──
-        // "pornhub.com",
-        // "xvideos.com",
-        // "youtube.com",
-        // "instagram.com",
-        "tgc.edu.bd",
+        'nolinks.com'
     )
 }

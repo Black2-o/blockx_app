@@ -11,6 +11,7 @@ import '../widgets/cards.dart';
 import '../widgets/inputs.dart';
 import '../widgets/state_indicators.dart';
 import 'ask_screen.dart';
+import 'device_setup_screen.dart';
 import 'faq_screen.dart';
 import 'splash_screen.dart';
 import 'support_screen.dart';
@@ -167,6 +168,14 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         const SizedBox(height: AppSpacing.xl),
         Text('HELP & MORE', style: AppText.sectionHeader),
         const SizedBox(height: AppSpacing.md),
+        _LinkRow(
+          icon: Icons.phonelink_setup_outlined,
+          label: 'Device Setup',
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const DeviceSetupScreen()),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
         _LinkRow(
           icon: Icons.help_outline,
           label: 'FAQ',

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/block_providers.dart';
+import '../screens/device_setup_screen.dart';
 import '../services/block_platform.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
@@ -84,6 +85,23 @@ class PermissionBanner extends ConsumerWidget {
                   buttonText: 'Ignore Battery Optimization',
                   onPressed: BlockPlatform.openBatteryOptimizationSettings,
                 ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                        builder: (_) => const DeviceSetupScreen()),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.amber,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 0),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text('Still not working? Open Device Setup →',
+                      style: AppText.bodyDim.copyWith(color: AppColors.amber)),
+                ),
+              ),
             ],
           ),
         );

@@ -8,6 +8,7 @@ import '../data/site_store.dart';
 import '../models/app_info.dart';
 import '../models/app_usage.dart';
 import '../models/block_config.dart';
+import '../models/device_info.dart';
 import '../services/block_platform.dart';
 
 /// Provides the opened [BlockStore]. Overridden in `main()` once Hive is ready.
@@ -45,6 +46,11 @@ final appIconProvider =
 /// so we don't enumerate every installed app just to name a few.
 final appNameProvider = FutureProvider.family<String, String>((ref, packageName) {
   return BlockPlatform.getAppLabel(packageName);
+});
+
+/// Read-only device identity, for the Device Setup screen's per-OEM guidance.
+final deviceInfoProvider = FutureProvider<DeviceInfo>((ref) {
+  return BlockPlatform.getDeviceInfo();
 });
 
 /// Whether the permissions the blocker needs are granted.

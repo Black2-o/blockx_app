@@ -16,11 +16,18 @@ import 'theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  final store = await BlockStore.open();
-  final siteStore = await SiteStore.open();
-  final featureStore = await FeatureStore.open();
-  final accountStore = await AccountStore.open();
-  final streakStore = await StreakStore.open();
+  // Kick off all box opens at once (they're independent) so the native launch
+  // screen clears sooner — sequential awaits added avoidable startup delay.
+  final blockFuture = BlockStore.open();
+  final siteFuture = SiteStore.open();
+  final featureFuture = FeatureStore.open();
+  final accountFuture = AccountStore.open();
+  final streakFuture = StreakStore.open();
+  final store = await blockFuture;
+  final siteStore = await siteFuture;
+  final featureStore = await featureFuture;
+  final accountStore = await accountFuture;
+  final streakStore = await streakFuture;
 
   runApp(
     ProviderScope(
