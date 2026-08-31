@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/block_providers.dart';
-import '../services/block_platform.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/buttons.dart';
-import '../widgets/decor.dart';
-import 'root_shell.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/services/block_platform.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/buttons.dart';
+import 'package:blockx/widgets/decor.dart';
+import 'package:blockx/screens/root_shell.dart';
 
 /// A 4-step permissions walkthrough (Zeigarnik: a visible step counter nags an
 /// unfinished grant back to completion). Wraps the existing permission checks —
@@ -59,7 +59,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       const _OnboardStep(
         icon: Icons.shield_outlined,
         title: 'Welcome to BlockX',
-        body: 'Block distracting apps, websites, and Shorts/Reels — the instant '
+        body:
+            'Block distracting apps, websites, and Shorts/Reels — the instant '
             'they appear. First, three quick permissions make the engine work.',
         cta: 'Get Started',
         granted: true,
@@ -67,7 +68,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       _OnboardStep(
         icon: Icons.accessibility_new,
         title: 'Accessibility',
-        body: 'Lets BlockX detect the app in front and read a browser’s address '
+        body:
+            'Lets BlockX detect the app in front and read a browser’s address '
             'bar. This is the whole engine.',
         cta: 'Enable Accessibility',
         granted: perms?.accessibility ?? false,
@@ -76,7 +78,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       _OnboardStep(
         icon: Icons.layers_outlined,
         title: 'Display Over Apps',
-        body: 'Lets BlockX show the block screen and the floating timer over '
+        body:
+            'Lets BlockX show the block screen and the floating timer over '
             'other apps.',
         cta: 'Allow Overlay',
         granted: perms?.overlay ?? false,
@@ -85,7 +88,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       _OnboardStep(
         icon: Icons.query_stats,
         title: 'Usage Access',
-        body: 'Lets BlockX reliably read the real foreground app. Find "BlockX" '
+        body:
+            'Lets BlockX reliably read the real foreground app. Find "BlockX" '
             'in the list and turn it on.',
         cta: 'Allow Usage Access',
         granted: perms?.usageAccess ?? false,
@@ -107,8 +111,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints:
-                const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
+            constraints: const BoxConstraints(
+              maxWidth: AppSpacing.maxContentWidth,
+            ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppSpacing.xl),
               child: Column(
@@ -133,22 +138,33 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  Text('Step ${_step + 1} of ${steps.length}',
-                      style: AppText.bodyDim, textAlign: TextAlign.center),
+                  Text(
+                    'Step ${_step + 1} of ${steps.length}',
+                    style: AppText.bodyDim,
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: AppSpacing.sm),
-                  Text(current.title.toUpperCase(),
-                      style: AppText.titleL, textAlign: TextAlign.center),
+                  Text(
+                    current.title.toUpperCase(),
+                    style: AppText.titleL,
+                    textAlign: TextAlign.center,
+                  ),
                   if (isPermissionStep) ...[
                     const SizedBox(height: AppSpacing.md),
                     Center(child: _StatusPill(granted: granted)),
                   ],
                   const SizedBox(height: AppSpacing.md),
-                  Text(current.body,
-                      style: AppText.body, textAlign: TextAlign.center),
+                  Text(
+                    current.body,
+                    style: AppText.body,
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: AppSpacing.xxl),
                   if (current.granted)
                     PrimaryButton(
-                      label: isLast ? 'Done' : (_step == 0 ? current.cta : 'Next'),
+                      label: isLast
+                          ? 'Done'
+                          : (_step == 0 ? current.cta : 'Next'),
                       icon: _step != 0 ? Icons.check : null,
                       color: accent,
                       onPressed: () {
@@ -260,8 +276,11 @@ class _StatusPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(granted ? Icons.check_circle : Icons.error_outline,
-              size: 16, color: color),
+          Icon(
+            granted ? Icons.check_circle : Icons.error_outline,
+            size: 16,
+            color: color,
+          ),
           const SizedBox(width: AppSpacing.xs),
           Text(
             granted ? 'ALLOWED' : 'NOT ALLOWED YET',

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
-import '../theme/app_typography.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_typography.dart';
 
 /// A full-bleed dark background with one restrained radial glow behind its
 /// [child]. The signature BlockX motif — used sparingly (splash, block screens),
@@ -36,7 +36,12 @@ class GlowBackground extends StatelessWidget {
 
 /// A big hero number (timer countdowns, stat values) in Bebas Neue.
 class HeroNumber extends StatelessWidget {
-  const HeroNumber(this.value, {super.key, this.color = AppColors.text, this.size = 40});
+  const HeroNumber(
+    this.value, {
+    super.key,
+    this.color = AppColors.text,
+    this.size = 40,
+  });
 
   final String value;
   final Color color;

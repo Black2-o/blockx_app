@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/app_info.dart';
-import '../models/block_config.dart';
-import '../providers/block_providers.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/app_icon.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/cards.dart';
-import '../widgets/empty_state.dart';
-import '../widgets/state_indicators.dart';
-import 'app_picker_screen.dart';
-import 'config_sheet.dart';
+import 'package:blockx/models/app_info.dart';
+import 'package:blockx/models/block_config.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/app_icon.dart';
+import 'package:blockx/widgets/app_scaffold.dart';
+import 'package:blockx/widgets/cards.dart';
+import 'package:blockx/widgets/empty_state.dart';
+import 'package:blockx/widgets/state_indicators.dart';
+import 'package:blockx/screens/app_picker_screen.dart';
+import 'package:blockx/screens/config_sheet.dart';
 
 /// The full list of blocked apps on its own page, with a `+` at the bottom to
 /// add more. Keeping the list here (not on the dashboard) means the dashboard
@@ -35,9 +35,11 @@ class BlockedAppsScreen extends ConsumerWidget {
     }
 
     final packages = blockList.keys.toList()
-      ..sort((a, b) => (names[a] ?? a)
-          .toLowerCase()
-          .compareTo((names[b] ?? b).toLowerCase()));
+      ..sort(
+        (a, b) => (names[a] ?? a).toLowerCase().compareTo(
+          (names[b] ?? b).toLowerCase(),
+        ),
+      );
 
     return AppScaffold(
       title: 'Blocked Apps',
@@ -75,7 +77,8 @@ class BlockedAppsScreen extends ConsumerWidget {
                   config: blockList[pkg]!,
                   onToggle: (v) =>
                       ref.read(blockListProvider.notifier).setEnabled(pkg, v),
-                  onTap: () => _editConfig(context, ref, pkg, name, blockList[pkg]!),
+                  onTap: () =>
+                      _editConfig(context, ref, pkg, name, blockList[pkg]!),
                   onRemove: () => _confirmRemove(context, ref, pkg, name),
                 );
               },
@@ -83,23 +86,37 @@ class BlockedAppsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _editConfig(BuildContext context, WidgetRef ref, String pkg,
-      String name, BlockConfig current) async {
-    final updated =
-        await showRuleConfigSheet(context, appName: name, initial: current);
+  Future<void> _editConfig(
+    BuildContext context,
+    WidgetRef ref,
+    String pkg,
+    String name,
+    BlockConfig current,
+  ) async {
+    final updated = await showRuleConfigSheet(
+      context,
+      appName: name,
+      initial: current,
+    );
     if (updated == null) return;
     await ref.read(blockListProvider.notifier).putApp(pkg, updated);
   }
 
   void _confirmRemove(
-      BuildContext context, WidgetRef ref, String pkg, String name) {
+    BuildContext context,
+    WidgetRef ref,
+    String pkg,
+    String name,
+  ) {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.dark2,
         title: Text('Remove $name?', style: AppText.title),
-        content: Text('This app will be removed from the block list.',
-            style: AppText.body),
+        content: Text(
+          'This app will be removed from the block list.',
+          style: AppText.body,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
@@ -110,8 +127,10 @@ class BlockedAppsScreen extends ConsumerWidget {
               ref.read(blockListProvider.notifier).removeApp(pkg);
               Navigator.of(dialogContext).pop();
             },
-            child: Text('Remove',
-                style: AppText.label.copyWith(color: AppColors.red)),
+            child: Text(
+              'Remove',
+              style: AppText.label.copyWith(color: AppColors.red),
+            ),
           ),
         ],
       ),
@@ -156,10 +175,12 @@ class _AppRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name,
-                      style: AppText.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                  Text(
+                    name,
+                    style: AppText.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: AppSpacing.xs),
                   Row(
                     children: [

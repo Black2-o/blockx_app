@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
-import '../models/block_config.dart';
+import 'package:blockx/models/block_config.dart';
 
 /// Single source of truth for persistence: one Hive box mapping
 /// `packageName -> BlockConfig` (stored as a JSON string per app).

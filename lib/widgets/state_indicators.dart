@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../models/block_config.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
+import 'package:blockx/models/block_config.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
 
 /// A small pill that always pairs an ICON + TEXT LABEL + color — never color
 /// alone (master prompt §A.4: ~8% of men have red-green CVD). Used for
@@ -22,31 +22,31 @@ class StateBadge extends StatelessWidget {
 
   /// Blocked-directly: a hard, always-on block.
   factory StateBadge.blocked() => const StateBadge(
-        icon: Icons.block,
-        label: 'Blocked',
-        color: AppColors.red,
-      );
+    icon: Icons.block,
+    label: 'Blocked',
+    color: AppColors.red,
+  );
 
   /// Time-limited.
   factory StateBadge.timed() => const StateBadge(
-        icon: Icons.hourglass_bottom,
-        label: 'Timed',
-        color: AppColors.amber,
-      );
+    icon: Icons.hourglass_bottom,
+    label: 'Timed',
+    color: AppColors.amber,
+  );
 
   /// Not currently enforced.
   factory StateBadge.off() => const StateBadge(
-        icon: Icons.circle_outlined,
-        label: 'Off',
-        color: AppColors.textDim,
-      );
+    icon: Icons.circle_outlined,
+    label: 'Off',
+    color: AppColors.textDim,
+  );
 
   /// Allowed / unlimited (used sparingly).
   factory StateBadge.allowed() => const StateBadge(
-        icon: Icons.check_circle_outline,
-        label: 'Allowed',
-        color: AppColors.emerald,
-      );
+    icon: Icons.check_circle_outline,
+    label: 'Allowed',
+    color: AppColors.emerald,
+  );
 
   /// Derive the badge from a [BlockConfig] (respects the enabled flag).
   factory StateBadge.forConfig(BlockConfig config) {

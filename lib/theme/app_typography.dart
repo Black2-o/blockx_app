@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import 'package:blockx/theme/app_colors.dart';
 
 /// Font families (bundled locally in `assets/fonts/`, declared in pubspec).
 abstract final class AppFonts {

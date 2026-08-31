@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/streak.dart';
-import '../providers/block_providers.dart';
-import '../screens/progress_screen.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import 'app_icon.dart';
+import 'package:blockx/models/streak.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/screens/progress_screen.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/app_icon.dart';
 
 /// Shared building blocks for the redesigned Streak screens (overview + detail).
 ///
@@ -16,15 +16,12 @@ import 'app_icon.dart';
 /// the week strip and the calendar be derived purely from the start [DateTime]
 /// already stored in [StreakStore] — no per-day backend log needed.
 
-/// Warm red-dominant fill used for the hero panels. Amber only appears as a
-/// glow behind the flame (see [StreakHeroCard]) so white text always reads.
-const List<Color> _heroReds = [Color(0xFFFF3521), Color(0xFFE8000D), Color(0xFFB80008)];
-
-/// The flame gradient used to fill a "kept" day mark.
+/// The flame gradient used to fill a "kept" day mark. Colours come from
+/// [AppColors.flameGradient] — the single source of truth.
 const LinearGradient kFlameGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [Color(0xFFFF3521), Color(0xFFE8000D), Color(0xFFFFB020)],
+  colors: AppColors.flameGradient,
   stops: [0.0, 0.58, 1.0],
 );
 
@@ -87,8 +84,10 @@ class StreakHeroCard extends StatelessWidget {
         children: [
           // Kicker
           if (detail)
-            Text('Current streak',
-                style: AppText.label.copyWith(color: Colors.white))
+            Text(
+              'Current streak',
+              style: AppText.label.copyWith(color: AppColors.white),
+            )
           else
             Row(
               children: [
@@ -99,7 +98,7 @@ class StreakHeroCard extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppText.title.copyWith(color: Colors.white),
+                    style: AppText.title.copyWith(color: AppColors.white),
                   ),
                 ),
               ],
@@ -107,16 +106,25 @@ class StreakHeroCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           // Big number
           Text.rich(
-            TextSpan(children: [
-              TextSpan(text: '$days'),
-              TextSpan(text: 'd', style: TextStyle(fontSize: numberSize * 0.34)),
-            ]),
+            TextSpan(
+              children: [
+                TextSpan(text: '$days'),
+                TextSpan(
+                  text: 'd',
+                  style: TextStyle(fontSize: numberSize * 0.34),
+                ),
+              ],
+            ),
             style: AppText.heroNumber.copyWith(
               fontSize: numberSize,
-              color: Colors.white,
+              color: AppColors.white,
               height: 0.86,
               shadows: const [
-                Shadow(color: Color(0x803C0003), blurRadius: 14, offset: Offset(0, 2)),
+                Shadow(
+                  color: AppColors.heroShadow,
+                  blurRadius: 14,
+                  offset: Offset(0, 2),
+                ),
               ],
             ),
           ),
@@ -124,7 +132,7 @@ class StreakHeroCard extends StatelessWidget {
           Text(
             detail ? 'Days blocked · $title' : 'Day streak',
             style: AppText.button.copyWith(
-              color: Colors.white.withValues(alpha: 0.94),
+              color: AppColors.white.withValues(alpha: 0.94),
               fontSize: 13,
               letterSpacing: 0.14 * 13,
             ),
@@ -145,7 +153,7 @@ class StreakHeroCard extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment(-0.7, -1),
             end: Alignment(0.6, 1),
-            colors: _heroReds,
+            colors: AppColors.heroRedGradient,
             stops: [0.0, 0.52, 1.0],
           ),
           boxShadow: [
@@ -181,8 +189,11 @@ class StreakHeroCard extends StatelessWidget {
               Positioned(
                 right: -18,
                 top: -10,
-                child: Icon(Icons.local_fire_department,
-                    size: 150, color: Colors.white.withValues(alpha: 0.14)),
+                child: Icon(
+                  Icons.local_fire_department,
+                  size: 150,
+                  color: AppColors.white.withValues(alpha: 0.14),
+                ),
               ),
               // Dark scrim (lower-left) so the number always reads.
               Positioned.fill(
@@ -191,7 +202,7 @@ class StreakHeroCard extends StatelessWidget {
                     gradient: RadialGradient(
                       center: Alignment(-0.9, 0.95),
                       radius: 1.2,
-                      colors: [Color(0x9E3C0003), Color(0x003C0003)],
+                      colors: [AppColors.heroScrim, AppColors.heroScrimClear],
                       stops: [0.0, 0.6],
                     ),
                   ),
@@ -203,20 +214,30 @@ class StreakHeroCard extends StatelessWidget {
                   top: 14,
                   right: 14,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.22),
+                      color: AppColors.black.withValues(alpha: 0.22),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.emoji_events_outlined,
-                            color: Colors.white, size: 13),
+                        const Icon(
+                          Icons.emoji_events_outlined,
+                          color: AppColors.white,
+                          size: 13,
+                        ),
                         const SizedBox(width: 5),
-                        Text(detail ? 'Best $record' : '$record',
-                            style: AppText.bodyStrong.copyWith(
-                                color: Colors.white, fontSize: 12)),
+                        Text(
+                          detail ? 'Best $record' : '$record',
+                          style: AppText.bodyStrong.copyWith(
+                            color: AppColors.white,
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -237,10 +258,14 @@ class StreakHeroCard extends StatelessWidget {
       width: 24,
       height: 24,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.22),
+        color: AppColors.white.withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(7),
       ),
-      child: Icon(featureIcon ?? Icons.movie_outlined, color: Colors.white, size: 15),
+      child: Icon(
+        featureIcon ?? Icons.movie_outlined,
+        color: AppColors.white,
+        size: 15,
+      ),
     );
   }
 }
@@ -277,12 +302,14 @@ class WeekStrip extends StatelessWidget {
                     fontFamily: AppFonts.oswald,
                     fontSize: onHero ? 11 : 9,
                     color: onHero
-                        ? Colors.white.withValues(alpha: 0.72)
+                        ? AppColors.white.withValues(alpha: 0.72)
                         : AppColors.textDim,
                   ),
                 ),
                 SizedBox(height: onHero ? 7 : 6),
-                _mark(_stateFor(monday.add(Duration(days: i)), startDay, today)),
+                _mark(
+                  _stateFor(monday.add(Duration(days: i)), startDay, today),
+                ),
               ],
             ),
           ),
@@ -304,18 +331,21 @@ class WeekStrip extends StatelessWidget {
         deco = BoxDecoration(
           shape: shape,
           borderRadius: radius,
-          color: onHero ? Colors.white : null,
+          color: onHero ? AppColors.white : null,
           gradient: onHero ? null : kFlameGradient,
         );
-        child = Icon(Icons.check_rounded,
-            size: onHero ? 14 : 11, color: onHero ? AppColors.red : Colors.white);
+        child = Icon(
+          Icons.check_rounded,
+          size: onHero ? 14 : 11,
+          color: onHero ? AppColors.red : AppColors.white,
+        );
         break;
       case _DayState.today:
         deco = BoxDecoration(
           shape: shape,
           borderRadius: radius,
           border: Border.all(
-            color: onHero ? Colors.white : AppColors.amber,
+            color: onHero ? AppColors.white : AppColors.amber,
             width: 2,
           ),
         );
@@ -326,7 +356,7 @@ class WeekStrip extends StatelessWidget {
           shape: shape,
           borderRadius: radius,
           color: onHero
-              ? Colors.white.withValues(alpha: 0.12)
+              ? AppColors.white.withValues(alpha: 0.12)
               : AppColors.dark3,
           border: onHero ? null : Border.all(color: AppColors.border),
         );
@@ -369,11 +399,11 @@ class StreakListCard extends ConsumerWidget {
     final displayTitle = packageName == null
         ? title
         : ref
-            .watch(appNameProvider(packageName!))
-            .maybeWhen(data: (n) => n, orElse: () => title);
+              .watch(appNameProvider(packageName!))
+              .maybeWhen(data: (n) => n, orElse: () => title);
 
     return Material(
-      color: Colors.transparent,
+      color: AppColors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: AppRadius.mdAll,
@@ -395,10 +425,12 @@ class StreakListCard extends ConsumerWidget {
                     Row(
                       children: [
                         Flexible(
-                          child: Text(displayTitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppText.label),
+                          child: Text(
+                            displayTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.label,
+                          ),
                         ),
                         const SizedBox(width: AppSpacing.sm),
                         StreakMilestoneChipSmall(days: days),
@@ -418,11 +450,21 @@ class StreakListCard extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('$days',
-                      style: AppText.heroNumber.copyWith(fontSize: 34, color: AppColors.text)),
-                  Text(days == 1 ? 'DAY' : 'DAYS',
-                      style: AppText.bodyDim.copyWith(
-                          fontFamily: AppFonts.oswald, fontSize: 10, letterSpacing: 1.2)),
+                  Text(
+                    '$days',
+                    style: AppText.heroNumber.copyWith(
+                      fontSize: 34,
+                      color: AppColors.text,
+                    ),
+                  ),
+                  Text(
+                    days == 1 ? 'DAY' : 'DAYS',
+                    style: AppText.bodyDim.copyWith(
+                      fontFamily: AppFonts.oswald,
+                      fontSize: 10,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(width: 4),
@@ -445,7 +487,11 @@ class StreakListCard extends ConsumerWidget {
         color: AppColors.red.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Icon(featureIcon ?? Icons.movie_outlined, color: AppColors.red, size: 22),
+      child: Icon(
+        featureIcon ?? Icons.movie_outlined,
+        color: AppColors.red,
+        size: 22,
+      ),
     );
   }
 }
@@ -496,11 +542,17 @@ class MilestoneCard extends StatelessWidget {
       return _shell(
         child: Row(
           children: [
-            const Icon(Icons.workspace_premium, color: AppColors.emerald, size: 26),
+            const Icon(
+              Icons.workspace_premium,
+              color: AppColors.emerald,
+              size: 26,
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Text('Maxed out — legend.',
-                  style: AppText.title.copyWith(color: AppColors.text)),
+              child: Text(
+                'Maxed out — legend.',
+                style: AppText.title.copyWith(color: AppColors.text),
+              ),
             ),
           ],
         ),
@@ -519,18 +571,22 @@ class MilestoneCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('NEXT MILESTONE',
-                    style: AppText.bodyDim.copyWith(
-                        fontFamily: AppFonts.oswald,
-                        color: AppColors.red,
-                        fontSize: 10,
-                        letterSpacing: 1.4)),
+                Text(
+                  'NEXT MILESTONE',
+                  style: AppText.bodyDim.copyWith(
+                    fontFamily: AppFonts.oswald,
+                    color: AppColors.red,
+                    fontSize: 10,
+                    letterSpacing: 1.4,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(next.label.toUpperCase(),
-                    style: AppText.sectionHeader),
+                Text(next.label.toUpperCase(), style: AppText.sectionHeader),
                 const SizedBox(height: 3),
-                Text('$remaining more day${remaining == 1 ? '' : 's'} to unlock',
-                    style: AppText.bodyDim),
+                Text(
+                  '$remaining more day${remaining == 1 ? '' : 's'} to unlock',
+                  style: AppText.bodyDim,
+                ),
                 const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(99),
@@ -545,12 +601,24 @@ class MilestoneCard extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerRight,
                   child: Text.rich(
-                    TextSpan(children: [
-                      TextSpan(text: '$days ', style: AppText.bodyStrong.copyWith(
-                          fontFamily: AppFonts.oswald, fontSize: 11)),
-                      TextSpan(text: '/ ${next.days}', style: AppText.bodyDim.copyWith(
-                          fontFamily: AppFonts.oswald, fontSize: 11)),
-                    ]),
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '$days ',
+                          style: AppText.bodyStrong.copyWith(
+                            fontFamily: AppFonts.oswald,
+                            fontSize: 11,
+                          ),
+                        ),
+                        TextSpan(
+                          text: '/ ${next.days}',
+                          style: AppText.bodyDim.copyWith(
+                            fontFamily: AppFonts.oswald,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -562,33 +630,38 @@ class MilestoneCard extends StatelessWidget {
   }
 
   Widget _shell({required Widget child}) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.dark2,
-          borderRadius: AppRadius.mdAll,
-          border: Border.all(color: AppColors.borderRed),
-        ),
-        child: child,
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+    decoration: BoxDecoration(
+      color: AppColors.dark2,
+      borderRadius: AppRadius.mdAll,
+      border: Border.all(color: AppColors.borderRed),
+    ),
+    child: child,
+  );
 
   Widget _hex(int label) => SizedBox(
-        width: 46,
-        height: 46,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.red.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.red, width: 2),
-              ),
-            ),
-            Text('$label',
-                style: AppText.heroNumber.copyWith(fontSize: 20, color: Colors.white)),
-          ],
+    width: 46,
+    height: 46,
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.red.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.red, width: 2),
+          ),
         ),
-      );
+        Text(
+          '$label',
+          style: AppText.heroNumber.copyWith(
+            fontSize: 20,
+            color: AppColors.white,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -615,8 +688,18 @@ class _StreakCalendarState extends State<StreakCalendar> {
   }
 
   static const _months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
   static const _wd = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -633,7 +716,8 @@ class _StreakCalendarState extends State<StreakCalendar> {
   Widget build(BuildContext context) {
     final today = _dayOnly(DateTime.now());
     final startDay = _dayOnly(widget.start);
-    final firstWeekday = DateTime(_month.year, _month.month, 1).weekday % 7; // Sun=0
+    final firstWeekday =
+        DateTime(_month.year, _month.month, 1).weekday % 7; // Sun=0
     final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
 
     final cells = <Widget>[];
@@ -656,12 +740,17 @@ class _StreakCalendarState extends State<StreakCalendar> {
         children: [
           Row(
             children: [
-              Text('${_months[_month.month - 1]} ${_month.year}'.toUpperCase(),
-                  style: AppText.sectionHeader),
+              Text(
+                '${_months[_month.month - 1]} ${_month.year}'.toUpperCase(),
+                style: AppText.sectionHeader,
+              ),
               const Spacer(),
               _navBtn(Icons.chevron_left, () => _shift(-1)),
               const SizedBox(width: AppSpacing.sm),
-              _navBtn(Icons.chevron_right, _atCurrentMonth ? null : () => _shift(1)),
+              _navBtn(
+                Icons.chevron_right,
+                _atCurrentMonth ? null : () => _shift(1),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -670,9 +759,13 @@ class _StreakCalendarState extends State<StreakCalendar> {
               for (final w in _wd)
                 Expanded(
                   child: Center(
-                    child: Text(w,
-                        style: AppText.bodyDim.copyWith(
-                            fontFamily: AppFonts.oswald, fontSize: 10)),
+                    child: Text(
+                      w,
+                      style: AppText.bodyDim.copyWith(
+                        fontFamily: AppFonts.oswald,
+                        fontSize: 10,
+                      ),
+                    ),
                   ),
                 ),
             ],
@@ -692,8 +785,10 @@ class _StreakCalendarState extends State<StreakCalendar> {
               const Icon(Icons.info_outline, color: AppColors.amber, size: 14),
               const SizedBox(width: 7),
               Expanded(
-                child: Text('Kept days since ${_months[startDay.month - 1].substring(0, 3)} ${startDay.day}. Tap ‹ to see previous weeks.',
-                    style: AppText.bodyDim.copyWith(fontSize: 12.5)),
+                child: Text(
+                  'Kept days since ${_months[startDay.month - 1].substring(0, 3)} ${startDay.day}. Tap ‹ to see previous weeks.',
+                  style: AppText.bodyDim.copyWith(fontSize: 12.5),
+                ),
               ),
             ],
           ),
@@ -716,9 +811,13 @@ class _StreakCalendarState extends State<StreakCalendar> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: AppColors.border),
         ),
-        child: Icon(icon,
-            color: enabled ? AppColors.text : AppColors.textDim.withValues(alpha: 0.3),
-            size: 18),
+        child: Icon(
+          icon,
+          color: enabled
+              ? AppColors.text
+              : AppColors.textDim.withValues(alpha: 0.3),
+          size: 18,
+        ),
       ),
     );
   }
@@ -733,8 +832,13 @@ class _StreakCalendarState extends State<StreakCalendar> {
             gradient: kFlameGradient,
           ),
           alignment: Alignment.center,
-          child: Text('${day.day}',
-              style: AppText.bodyStrong.copyWith(color: Colors.white, fontSize: 13)),
+          child: Text(
+            '${day.day}',
+            style: AppText.bodyStrong.copyWith(
+              color: AppColors.white,
+              fontSize: 13,
+            ),
+          ),
         );
       case _DayState.today:
         return Container(
@@ -743,14 +847,21 @@ class _StreakCalendarState extends State<StreakCalendar> {
             border: Border.all(color: AppColors.amber, width: 2),
           ),
           alignment: Alignment.center,
-          child: Text('${day.day}',
-              style: AppText.bodyStrong.copyWith(color: Colors.white, fontSize: 13)),
+          child: Text(
+            '${day.day}',
+            style: AppText.bodyStrong.copyWith(
+              color: AppColors.white,
+              fontSize: 13,
+            ),
+          ),
         );
       case _DayState.future:
       case _DayState.off:
         return Center(
-          child: Text('${day.day}',
-              style: AppText.bodyDim.copyWith(fontSize: 13)),
+          child: Text(
+            '${day.day}',
+            style: AppText.bodyDim.copyWith(fontSize: 13),
+          ),
         );
     }
   }
@@ -768,7 +879,10 @@ class ScreenTimeCard extends ConsumerWidget {
     final usageAsync = ref.watch(usageStatsProvider);
     final (label, apps) = usageAsync.maybeWhen(
       data: (list) {
-        final total = list.fold<Duration>(Duration.zero, (s, u) => s + u.totalTime);
+        final total = list.fold<Duration>(
+          Duration.zero,
+          (s, u) => s + u.totalTime,
+        );
         final h = total.inHours;
         final mm = total.inMinutes % 60;
         return (h > 0 ? '${h}h ${mm}m' : '${mm}m', list.length);
@@ -777,11 +891,11 @@ class ScreenTimeCard extends ConsumerWidget {
     );
 
     return Material(
-      color: Colors.transparent,
+      color: AppColors.transparent,
       child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const ProgressScreen()),
-        ),
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => const ProgressScreen())),
         borderRadius: AppRadius.mdAll,
         child: Ink(
           decoration: BoxDecoration(
@@ -799,25 +913,37 @@ class ScreenTimeCard extends ConsumerWidget {
                   color: AppColors.red.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.bar_chart, color: AppColors.red, size: 22),
+                child: const Icon(
+                  Icons.bar_chart,
+                  color: AppColors.red,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('SCREEN TIME TODAY',
-                        style: AppText.bodyDim.copyWith(
-                            fontFamily: AppFonts.oswald, fontSize: 10.5, letterSpacing: 1.2)),
+                    Text(
+                      'SCREEN TIME TODAY',
+                      style: AppText.bodyDim.copyWith(
+                        fontFamily: AppFonts.oswald,
+                        fontSize: 10.5,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
                     const SizedBox(height: 1),
                     Text.rich(
-                      TextSpan(children: [
-                        TextSpan(text: label, style: AppText.title),
-                        if (apps > 0)
-                          TextSpan(
+                      TextSpan(
+                        children: [
+                          TextSpan(text: label, style: AppText.title),
+                          if (apps > 0)
+                            TextSpan(
                               text: '  · across $apps apps',
-                              style: AppText.bodyDim.copyWith(fontSize: 14)),
-                      ]),
+                              style: AppText.bodyDim.copyWith(fontSize: 14),
+                            ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

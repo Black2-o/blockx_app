@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/block_providers.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/decor.dart';
-import '../widgets/page_header.dart';
-import '../widgets/permission_banner.dart';
-import 'blocked_apps_screen.dart';
-import 'features_screen.dart';
-import 'sites_screen.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/decor.dart';
+import 'package:blockx/widgets/page_header.dart';
+import 'package:blockx/widgets/permission_banner.dart';
+import 'package:blockx/screens/blocked_apps_screen.dart';
+import 'package:blockx/screens/features_screen.dart';
+import 'package:blockx/screens/sites_screen.dart';
 
 /// The dashboard hub: a header, the live "locked down" summary, and three cards
 /// that open the full management pages (Block Apps · Shorts & Reels · Blocked

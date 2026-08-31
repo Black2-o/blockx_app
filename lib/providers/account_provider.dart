@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/account_store.dart';
+import 'package:blockx/data/account_store.dart';
 
 /// UI-ONLY account state, persisted in [AccountStore] (Hive box `account`).
 /// Touches NO native code, blocking data, or network (master prompt §G): a

@@ -915,9 +915,9 @@ class AppBlockerService : AccessibilityService() {
             gravity = Gravity.CENTER_VERTICAL
         }
 
-        // BlockX palette (matches lib/theme/app_colors.dart).
-        val cRed = 0xFFE8000D.toInt()
-        val cText = 0xFFF0E0E0.toInt()
+        // BlockX palette — single source of truth: BlockPalette.kt.
+        val cRed = BlockPalette.red
+        val cText = BlockPalette.text
 
         // Collapsed handle: BlockX's own logo, and ONLY the logo — the adaptive
         // icon's foreground layer, which is transparent (no white background
@@ -936,8 +936,8 @@ class AppBlockerService : AccessibilityService() {
             visibility = View.GONE
             background = GradientDrawable().apply {
                 cornerRadius = dp(15).toFloat()
-                setColor(0xF0111111.toInt())
-                setStroke(dp(1), 0x22FFFFFF.toInt())
+                setColor(BlockPalette.overlayPanel)
+                setStroke(dp(1), BlockPalette.overlayStroke)
             }
             // A bit more breathing room around the whole row (icon · time · button).
             setPadding(dp(11), dp(7), dp(9), dp(7))

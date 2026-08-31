@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/account_provider.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/buttons.dart';
-import '../widgets/decor.dart';
-import '../widgets/inputs.dart';
+import 'package:blockx/providers/account_provider.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/buttons.dart';
+import 'package:blockx/widgets/decor.dart';
+import 'package:blockx/widgets/inputs.dart';
 
 /// First-launch sign-in gate. Required once; the result is persisted so it never
 /// shows again unless the user signs out. Stub credentials (admin / admin) — no
@@ -64,8 +64,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
-              constraints:
-                  const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
+              constraints: const BoxConstraints(
+                maxWidth: AppSpacing.maxContentWidth,
+              ),
               child: SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
                   AppSpacing.xl,
@@ -79,12 +80,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   children: [
                     Image.asset('assets/logo.png', width: 72, height: 72),
                     const SizedBox(height: AppSpacing.lg),
-                    Text('BLOCKX',
-                        style: AppText.hero.copyWith(fontSize: 40),
-                        textAlign: TextAlign.center),
+                    Text(
+                      'BLOCKX',
+                      style: AppText.hero.copyWith(fontSize: 40),
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: AppSpacing.xs),
-                    Text('Sign in to get started.',
-                        style: AppText.bodyDim, textAlign: TextAlign.center),
+                    Text(
+                      'Sign in to get started.',
+                      style: AppText.bodyDim,
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: AppSpacing.xxl),
                     AppTextField(
                       controller: _userCtrl,

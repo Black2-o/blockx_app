@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/buttons.dart';
-import '../widgets/decor.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/app_scaffold.dart';
+import 'package:blockx/widgets/buttons.dart';
+import 'package:blockx/widgets/decor.dart';
 
 /// Ask Us / Contact: a single-CTA page that opens an email/contact link. UI
 /// only — no form submission to a server.
@@ -36,14 +36,20 @@ class AskScreen extends StatelessWidget {
                 width: 88,
                 height: 88,
                 alignment: Alignment.center,
-                child: const Icon(Icons.forum_outlined,
-                    color: AppColors.red, size: 44),
+                child: const Icon(
+                  Icons.forum_outlined,
+                  color: AppColors.red,
+                  size: 44,
+                ),
               ),
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
-          Text('ASK US ANYTHING',
-              style: AppText.titleL, textAlign: TextAlign.center),
+          Text(
+            'ASK US ANYTHING',
+            style: AppText.titleL,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: AppSpacing.sm),
           Text(
             'Bug, idea, or a blocking rule that broke after an app update? '

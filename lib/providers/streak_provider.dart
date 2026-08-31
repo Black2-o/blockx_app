@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/streak_store.dart';
-import '../services/block_platform.dart';
+import 'package:blockx/data/streak_store.dart';
+import 'package:blockx/services/block_platform.dart';
 
 /// Provides the opened [StreakStore]. Overridden in `main()` once Hive is ready.
 final streakStoreProvider = Provider<StreakStore>((ref) {

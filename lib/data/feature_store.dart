@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
-import '../models/block_config.dart';
+import 'package:blockx/models/block_config.dart';
 
 /// Persistence for in-app sub-feature blocks (YouTube Shorts, Instagram Reels,
 /// Facebook Reels): one Hive box `feature_blocks_v2` of `key -> BlockConfig`

@@ -2,9 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
 
 /// Shows a brief "winning" celebration overlay when a block is applied — a
 /// popping lock badge with a burst of particles and a headline. Auto-dismisses.
@@ -19,13 +19,10 @@ Future<void> showBlockCelebration(
     context: context,
     barrierDismissible: true,
     barrierLabel: 'celebration',
-    barrierColor: Colors.black.withValues(alpha: 0.72),
+    barrierColor: AppColors.black.withValues(alpha: 0.72),
     transitionDuration: const Duration(milliseconds: 200),
-    pageBuilder: (_, _, _) => _Celebration(
-      title: title,
-      subtitle: subtitle,
-      accent: accent,
-    ),
+    pageBuilder: (_, _, _) =>
+        _Celebration(title: title, subtitle: subtitle, accent: accent),
   );
 }
 
@@ -69,7 +66,10 @@ class _CelebrationState extends State<_Celebration>
     );
 
     final reduceMotion = WidgetsBinding
-        .instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+        .instance
+        .platformDispatcher
+        .accessibilityFeatures
+        .disableAnimations;
     if (reduceMotion) {
       _c.value = 1;
       _scheduleClose(const Duration(milliseconds: 800));
@@ -117,8 +117,10 @@ class _CelebrationState extends State<_Celebration>
         child: AnimatedBuilder(
           animation: _c,
           builder: (context, _) {
-            final scale = Tween<double>(begin: 0.4, end: 1.0)
-                .transform(pop.value.clamp(0.0, 1.0));
+            final scale = Tween<double>(
+              begin: 0.4,
+              end: 1.0,
+            ).transform(pop.value.clamp(0.0, 1.0));
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -150,15 +152,19 @@ class _CelebrationState extends State<_Celebration>
                             border: Border.all(color: widget.accent, width: 2),
                             boxShadow: [
                               BoxShadow(
-                                color: widget.accent
-                                    .withValues(alpha: 0.35 + 0.25 * (1 - shock.value)),
+                                color: widget.accent.withValues(
+                                  alpha: 0.35 + 0.25 * (1 - shock.value),
+                                ),
                                 blurRadius: 40,
                                 spreadRadius: 6,
                               ),
                             ],
                           ),
-                          child: Icon(Icons.lock,
-                              color: widget.accent, size: 50),
+                          child: Icon(
+                            Icons.lock,
+                            color: widget.accent,
+                            size: 50,
+                          ),
                         ),
                       ),
                     ],
@@ -169,11 +175,17 @@ class _CelebrationState extends State<_Celebration>
                   opacity: textFade,
                   child: Column(
                     children: [
-                      Text(widget.title.toUpperCase(),
-                          style: AppText.titleL, textAlign: TextAlign.center),
+                      Text(
+                        widget.title.toUpperCase(),
+                        style: AppText.titleL,
+                        textAlign: TextAlign.center,
+                      ),
                       const SizedBox(height: AppSpacing.xs),
-                      Text(widget.subtitle,
-                          style: AppText.bodyDim, textAlign: TextAlign.center),
+                      Text(
+                        widget.subtitle,
+                        style: AppText.bodyDim,
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 ),
@@ -235,8 +247,7 @@ class _BurstPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     for (final p in particles) {
       final d = p.distance * t;
-      final pos = center +
-          Offset(math.cos(p.angle) * d, math.sin(p.angle) * d);
+      final pos = center + Offset(math.cos(p.angle) * d, math.sin(p.angle) * d);
       final paint = Paint()
         ..color = p.color.withValues(alpha: (1 - t).clamp(0.0, 1.0))
         ..style = PaintingStyle.fill;

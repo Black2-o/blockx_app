@@ -2,14 +2,14 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/block_store.dart';
-import '../data/feature_store.dart';
-import '../data/site_store.dart';
-import '../models/app_info.dart';
-import '../models/app_usage.dart';
-import '../models/block_config.dart';
-import '../models/device_info.dart';
-import '../services/block_platform.dart';
+import 'package:blockx/data/block_store.dart';
+import 'package:blockx/data/feature_store.dart';
+import 'package:blockx/data/site_store.dart';
+import 'package:blockx/models/app_info.dart';
+import 'package:blockx/models/app_usage.dart';
+import 'package:blockx/models/block_config.dart';
+import 'package:blockx/models/device_info.dart';
+import 'package:blockx/services/block_platform.dart';
 
 /// Provides the opened [BlockStore]. Overridden in `main()` once Hive is ready.
 final blockStoreProvider = Provider<BlockStore>((ref) {

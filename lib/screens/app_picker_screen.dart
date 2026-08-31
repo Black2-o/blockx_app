@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/app_info.dart';
-import '../providers/block_providers.dart';
-import '../models/block_config.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/app_icon.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/celebration.dart';
-import '../widgets/empty_state.dart';
-import '../widgets/inputs.dart';
-import 'config_sheet.dart';
+import 'package:blockx/models/app_info.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/models/block_config.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/app_icon.dart';
+import 'package:blockx/widgets/app_scaffold.dart';
+import 'package:blockx/widgets/celebration.dart';
+import 'package:blockx/widgets/empty_state.dart';
+import 'package:blockx/widgets/inputs.dart';
+import 'package:blockx/screens/config_sheet.dart';
 
 /// The `+` destination: a list of every installed app. Tapping one opens the
 /// rule sheet, adds it to the block list, and returns to Home.
@@ -49,10 +49,12 @@ class _AppPickerScreenState extends ConsumerState<AppPickerScreen> {
           final filtered = _query.isEmpty
               ? apps
               : apps
-                  .where((a) =>
-                      a.appName.toLowerCase().contains(q) ||
-                      a.packageName.toLowerCase().contains(q))
-                  .toList();
+                    .where(
+                      (a) =>
+                          a.appName.toLowerCase().contains(q) ||
+                          a.packageName.toLowerCase().contains(q),
+                    )
+                    .toList();
 
           return Column(
             children: [
@@ -152,8 +154,11 @@ class _AppRow extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               if (added)
-                const Icon(Icons.check_circle,
-                    color: AppColors.emerald, size: 20)
+                const Icon(
+                  Icons.check_circle,
+                  color: AppColors.emerald,
+                  size: 20,
+                )
               else
                 const Icon(Icons.add, color: AppColors.red, size: 22),
             ],

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
-import '../widgets/app_bottom_nav.dart';
-import '../widgets/page_header.dart';
-import 'account_screen.dart';
-import 'home_screen.dart';
-import 'streak_screen.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/widgets/app_bottom_nav.dart';
+import 'package:blockx/widgets/page_header.dart';
+import 'package:blockx/screens/account_screen.dart';
+import 'package:blockx/screens/home_screen.dart';
+import 'package:blockx/screens/streak_screen.dart';
 
 /// The main app shell: three bottom-nav tabs (Home · Progress · Profile) in an
 /// [IndexedStack] so each keeps its state. Blocking apps / reels / sites is done
@@ -23,11 +23,15 @@ class _RootShellState extends State<RootShell> {
   static const _tabs = [
     NavTab(icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Home'),
     NavTab(
-        icon: Icons.local_fire_department_outlined,
-        activeIcon: Icons.local_fire_department,
-        label: 'Streak'),
+      icon: Icons.local_fire_department_outlined,
+      activeIcon: Icons.local_fire_department,
+      label: 'Streak',
+    ),
     NavTab(
-        icon: Icons.person_outline, activeIcon: Icons.person, label: 'Profile'),
+      icon: Icons.person_outline,
+      activeIcon: Icons.person,
+      label: 'Profile',
+    ),
   ];
 
   void _select(int i) => setState(() => _index = i);

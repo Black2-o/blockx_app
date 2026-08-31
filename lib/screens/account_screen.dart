@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/account_provider.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/buttons.dart';
-import '../widgets/cards.dart';
-import '../widgets/inputs.dart';
-import '../widgets/state_indicators.dart';
-import 'ask_screen.dart';
-import 'device_setup_screen.dart';
-import 'faq_screen.dart';
-import 'splash_screen.dart';
-import 'support_screen.dart';
+import 'package:blockx/providers/account_provider.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/app_scaffold.dart';
+import 'package:blockx/widgets/buttons.dart';
+import 'package:blockx/widgets/cards.dart';
+import 'package:blockx/widgets/inputs.dart';
+import 'package:blockx/widgets/state_indicators.dart';
+import 'package:blockx/screens/ask_screen.dart';
+import 'package:blockx/screens/device_setup_screen.dart';
+import 'package:blockx/screens/faq_screen.dart';
+import 'package:blockx/screens/splash_screen.dart';
+import 'package:blockx/screens/support_screen.dart';
 
 /// Profile: premium status + the help/links hub (FAQ, Report a bug, Tip jar).
 /// Sign-in is normally handled by the first-launch gate; the signed-out form
@@ -84,12 +84,17 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('BLOCKX',
-            style: AppText.hero.copyWith(fontSize: 32),
-            textAlign: TextAlign.center),
+        Text(
+          'BLOCKX',
+          style: AppText.hero.copyWith(fontSize: 32),
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: AppSpacing.xs),
-        Text('Sign in to manage premium.',
-            style: AppText.bodyDim, textAlign: TextAlign.center),
+        Text(
+          'Sign in to manage premium.',
+          style: AppText.bodyDim,
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: AppSpacing.xl),
         AppTextField(
           controller: _userCtrl,
@@ -135,21 +140,28 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
             decoration: BoxDecoration(
               color: AppColors.emerald.withValues(alpha: 0.12),
               shape: BoxShape.circle,
-              border:
-                  Border.all(color: AppColors.emerald.withValues(alpha: 0.4)),
+              border: Border.all(
+                color: AppColors.emerald.withValues(alpha: 0.4),
+              ),
             ),
             child: const Icon(Icons.person, color: AppColors.emerald, size: 36),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        Text(account.username ?? 'You',
-            style: AppText.title, textAlign: TextAlign.center),
+        Text(
+          account.username ?? 'You',
+          style: AppText.title,
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: AppSpacing.lg),
         AppCard(
           child: Row(
             children: [
-              const Icon(Icons.workspace_premium,
-                  color: AppColors.emerald, size: 28),
+              const Icon(
+                Icons.workspace_premium,
+                color: AppColors.emerald,
+                size: 28,
+              ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
@@ -179,17 +191,17 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         _LinkRow(
           icon: Icons.help_outline,
           label: 'FAQ',
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const FaqScreen()),
-          ),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute<void>(builder: (_) => const FaqScreen())),
         ),
         const SizedBox(height: AppSpacing.sm),
         _LinkRow(
           icon: Icons.bug_report_outlined,
           label: 'Report a Bug',
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const AskScreen()),
-          ),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute<void>(builder: (_) => const AskScreen())),
         ),
         const SizedBox(height: AppSpacing.sm),
         _LinkRow(
@@ -206,11 +218,12 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
             foregroundColor: AppColors.textDim,
             side: const BorderSide(color: AppColors.border),
             minimumSize: const Size(0, AppSpacing.tapTarget),
-            shape:
-                const RoundedRectangleBorder(borderRadius: AppRadius.smAll),
+            shape: const RoundedRectangleBorder(borderRadius: AppRadius.smAll),
           ),
-          child: Text('SIGN OUT',
-              style: AppText.button.copyWith(color: AppColors.textDim)),
+          child: Text(
+            'SIGN OUT',
+            style: AppText.button.copyWith(color: AppColors.textDim),
+          ),
         ),
       ],
     );
@@ -218,7 +231,11 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
 }
 
 class _LinkRow extends StatelessWidget {
-  const _LinkRow({required this.icon, required this.label, required this.onTap});
+  const _LinkRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;

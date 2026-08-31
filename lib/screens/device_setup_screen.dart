@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/device_info.dart';
-import '../providers/block_providers.dart';
-import '../services/block_platform.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/cards.dart';
+import 'package:blockx/models/device_info.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/services/block_platform.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/app_scaffold.dart';
+import 'package:blockx/widgets/cards.dart';
 
 /// Device Setup / Health: a live check of the permissions blocking needs, plus
 /// per-manufacturer steps for the hidden OEM settings (MIUI pop-up + autostart,
@@ -90,8 +90,10 @@ class _DeviceSetupScreenState extends ConsumerState<DeviceSetupScreen>
             const SizedBox(height: AppSpacing.md),
             permsAsync.when(
               loading: () => const _Loading(),
-              error: (e, _) => Text('Could not read permissions: $e',
-                  style: AppText.bodyDim),
+              error: (e, _) => Text(
+                'Could not read permissions: $e',
+                style: AppText.bodyDim,
+              ),
               data: (perms) => Column(
                 children: [
                   _StatusRow(
@@ -138,8 +140,10 @@ class _DeviceSetupScreenState extends ConsumerState<DeviceSetupScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('KEEP IT RUNNING ON ${device.label.toUpperCase()}',
-            style: AppText.sectionHeader),
+        Text(
+          'KEEP IT RUNNING ON ${device.label.toUpperCase()}',
+          style: AppText.sectionHeader,
+        ),
         const SizedBox(height: AppSpacing.md),
         AppCard(
           child: Column(
@@ -260,11 +264,13 @@ class _StatusRow extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.sm),
             if (ok)
-              Text('ON',
-                  style: AppText.bodyDim.copyWith(
-                    color: AppColors.emerald,
-                    fontWeight: FontWeight.w600,
-                  ))
+              Text(
+                'ON',
+                style: AppText.bodyDim.copyWith(
+                  color: AppColors.emerald,
+                  fontWeight: FontWeight.w600,
+                ),
+              )
             else
               OutlinedButton(
                 onPressed: () => onFix(),
@@ -276,7 +282,8 @@ class _StatusRow extends StatelessWidget {
                     vertical: AppSpacing.sm,
                   ),
                   shape: const RoundedRectangleBorder(
-                      borderRadius: AppRadius.smAll),
+                    borderRadius: AppRadius.smAll,
+                  ),
                   textStyle: AppText.button.copyWith(fontSize: 13),
                 ),
                 child: const Text('FIX'),
@@ -311,8 +318,10 @@ class _RestrictedSettingsCard extends StatelessWidget {
               const Icon(Icons.lock_outline, color: AppColors.amber, size: 20),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: Text("Accessibility greyed out? (Android 13+)",
-                    style: AppText.label.copyWith(color: AppColors.amber)),
+                child: Text(
+                  "Accessibility greyed out? (Android 13+)",
+                  style: AppText.label.copyWith(color: AppColors.amber),
+                ),
               ),
             ],
           ),
@@ -330,8 +339,9 @@ class _RestrictedSettingsCard extends StatelessWidget {
               foregroundColor: AppColors.amber,
               side: const BorderSide(color: AppColors.amber),
               minimumSize: const Size.fromHeight(AppSpacing.tapTarget),
-              shape:
-                  const RoundedRectangleBorder(borderRadius: AppRadius.smAll),
+              shape: const RoundedRectangleBorder(
+                borderRadius: AppRadius.smAll,
+              ),
               textStyle: AppText.button.copyWith(color: AppColors.amber),
             ),
             child: const Text('OPEN APP INFO'),

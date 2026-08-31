@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-import 'data/account_store.dart';
-import 'data/block_store.dart';
-import 'data/feature_store.dart';
-import 'data/site_store.dart';
-import 'data/streak_store.dart';
-import 'providers/account_provider.dart';
-import 'providers/block_providers.dart';
-import 'providers/streak_provider.dart';
-import 'screens/splash_screen.dart';
-import 'theme/app_theme.dart';
+import 'package:blockx/data/account_store.dart';
+import 'package:blockx/data/block_store.dart';
+import 'package:blockx/data/feature_store.dart';
+import 'package:blockx/data/site_store.dart';
+import 'package:blockx/data/streak_store.dart';
+import 'package:blockx/providers/account_provider.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/providers/streak_provider.dart';
+import 'package:blockx/screens/splash_screen.dart';
+import 'package:blockx/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

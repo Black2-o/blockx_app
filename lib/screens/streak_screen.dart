@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/block_providers.dart';
-import '../providers/streak_provider.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/empty_state.dart';
-import '../widgets/streak_widgets.dart';
-import 'streak_detail_screen.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/providers/streak_provider.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/app_scaffold.dart';
+import 'package:blockx/widgets/empty_state.dart';
+import 'package:blockx/widgets/streak_widgets.dart';
+import 'package:blockx/screens/streak_detail_screen.dart';
 
 /// The Streak tab: a gradient flame hero for the longest streak, an at-a-glance
 /// stats row, a screen-time shortcut, then a card per blocked app/feature —
@@ -32,9 +32,9 @@ class StreakScreen extends ConsumerStatefulWidget {
 
 class _StreakScreenState extends ConsumerState<StreakScreen> {
   void _openDetail(String id) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => StreakDetailScreen(id: id)),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => StreakDetailScreen(id: id)));
   }
 
   @override
@@ -78,8 +78,7 @@ class _StreakScreenState extends ConsumerState<StreakScreen> {
     final hasStreaks = ordered.isNotEmpty;
     final totalDays = ordered.fold<int>(0, (sum, id) => sum + daysFor(id));
     final topDays = hasStreaks ? daysFor(ordered.first) : 0;
-    final bestEver =
-        notifier.bestEver > topDays ? notifier.bestEver : topDays;
+    final bestEver = notifier.bestEver > topDays ? notifier.bestEver : topDays;
 
     final body = ListView(
       padding: EdgeInsets.fromLTRB(
@@ -91,19 +90,22 @@ class _StreakScreenState extends ConsumerState<StreakScreen> {
       children: [
         // Lead with the featured (longest) streak, like the reference apps.
         if (hasStreaks) ...[
-          Builder(builder: (_) {
-            final id = ordered.first;
-            return StreakHeroCard(
-              days: daysFor(id),
-              record: notifier.recordFor(id),
-              title: titleFor(id),
-              start: startFor(id),
-              packageName: isFeature(id) ? null : id,
-              featureIcon:
-                  isFeature(id) ? StreakScreen.featureMeta[id]?.$2 : null,
-              onTap: () => _openDetail(id),
-            );
-          }),
+          Builder(
+            builder: (_) {
+              final id = ordered.first;
+              return StreakHeroCard(
+                days: daysFor(id),
+                record: notifier.recordFor(id),
+                title: titleFor(id),
+                start: startFor(id),
+                packageName: isFeature(id) ? null : id,
+                featureIcon: isFeature(id)
+                    ? StreakScreen.featureMeta[id]?.$2
+                    : null,
+                onTap: () => _openDetail(id),
+              );
+            },
+          ),
           const SizedBox(height: AppSpacing.lg),
         ],
 
@@ -134,7 +136,9 @@ class _StreakScreenState extends ConsumerState<StreakScreen> {
               start: startFor(id),
               title: titleFor(id),
               packageName: isFeature(id) ? null : id,
-              featureIcon: isFeature(id) ? StreakScreen.featureMeta[id]?.$2 : null,
+              featureIcon: isFeature(id)
+                  ? StreakScreen.featureMeta[id]?.$2
+                  : null,
               onTap: () => _openDetail(id),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -231,9 +235,13 @@ class _StatTile extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 20),
           const SizedBox(height: AppSpacing.sm),
-          Text(value,
-              style: AppText.heroNumber
-                  .copyWith(fontSize: 24, color: AppColors.text)),
+          Text(
+            value,
+            style: AppText.heroNumber.copyWith(
+              fontSize: 24,
+              color: AppColors.text,
+            ),
+          ),
           const SizedBox(height: 2),
           Text(
             label.toUpperCase(),

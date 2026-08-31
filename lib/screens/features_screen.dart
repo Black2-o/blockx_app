@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/feature_store.dart';
-import '../models/block_config.dart';
-import '../providers/block_providers.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/cards.dart';
-import '../widgets/celebration.dart';
-import '../widgets/state_indicators.dart';
-import 'config_sheet.dart';
+import 'package:blockx/data/feature_store.dart';
+import 'package:blockx/models/block_config.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/app_scaffold.dart';
+import 'package:blockx/widgets/cards.dart';
+import 'package:blockx/widgets/celebration.dart';
+import 'package:blockx/widgets/state_indicators.dart';
+import 'package:blockx/screens/config_sheet.dart';
 
 /// Manage in-app feature blocks (Shorts / Reels). Turning one on always asks for
 /// the block type first (Strict / Limit), just like adding an app. Backed by the
@@ -52,8 +52,9 @@ class FeaturesScreen extends ConsumerWidget {
         context,
         title: label,
         subtitle: updated.mode == BlockMode.timed ? 'Limited.' : 'Locked in.',
-        accent:
-            updated.mode == BlockMode.timed ? AppColors.amber : AppColors.red,
+        accent: updated.mode == BlockMode.timed
+            ? AppColors.amber
+            : AppColors.red,
       );
     }
   }
@@ -96,8 +97,13 @@ class FeaturesScreen extends ConsumerWidget {
             // First word of the label is the parent app name ("Instagram Reels"
             // -> "Instagram"), used only for the "covered" note.
             appName: label.split(' ').first,
-            onTap: () => _configure(context, ref, key, label,
-                configs[key] ?? const BlockConfig(enabled: false)),
+            onTap: () => _configure(
+              context,
+              ref,
+              key,
+              label,
+              configs[key] ?? const BlockConfig(enabled: false),
+            ),
             onTurnOff: () => notifier.setEnabled(key, false),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -138,8 +144,9 @@ class _FeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final on = config.enabled;
-    final iconColor =
-        covered ? AppColors.textDim : (on ? AppColors.red : AppColors.textDim);
+    final iconColor = covered
+        ? AppColors.textDim
+        : (on ? AppColors.red : AppColors.textDim);
     return AppCard(
       // Locked while covered — no configuring or turning off from here.
       onTap: covered ? null : onTap,

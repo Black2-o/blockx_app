@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
 
 /// A "nothing here yet" placeholder: one simple icon + a line + optional
 /// sub-line. Deliberately plain (no stock illustration — anti-slop §7).
@@ -37,7 +37,11 @@ class EmptyState extends StatelessWidget {
           Text(title, style: AppText.label, textAlign: TextAlign.center),
           if (subtitle != null) ...[
             const SizedBox(height: AppSpacing.xs),
-            Text(subtitle!, style: AppText.bodyDim, textAlign: TextAlign.center),
+            Text(
+              subtitle!,
+              style: AppText.bodyDim,
+              textAlign: TextAlign.center,
+            ),
           ],
         ],
       ),

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/buttons.dart';
-import '../widgets/decor.dart';
-import 'login_screen.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/buttons.dart';
+import 'package:blockx/widgets/decor.dart';
+import 'package:blockx/screens/login_screen.dart';
 
 /// The welcome / "Get Started" page shown on first launch after the splash,
 /// before sign-in. Introduces what BlockX does, then leads to the login screen.
@@ -16,11 +16,21 @@ class GetStartedScreen extends StatelessWidget {
   final Widget Function() destinationBuilder;
 
   static const _highlights = [
-    (Icons.block, 'Block distracting apps', 'Strict or a daily limit — your call.'),
-    (Icons.smart_display_outlined, 'Kill Shorts & Reels',
-        'Keep the app, lose the endless scroll.'),
-    (Icons.insights_outlined, 'Track your progress',
-        'See where your screen time really goes.'),
+    (
+      Icons.block,
+      'Block distracting apps',
+      'Strict or a daily limit — your call.',
+    ),
+    (
+      Icons.smart_display_outlined,
+      'Kill Shorts & Reels',
+      'Keep the app, lose the endless scroll.',
+    ),
+    (
+      Icons.insights_outlined,
+      'Track your progress',
+      'See where your screen time really goes.',
+    ),
   ];
 
   @override
@@ -31,8 +41,9 @@ class GetStartedScreen extends StatelessWidget {
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
-              constraints:
-                  const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
+              constraints: const BoxConstraints(
+                maxWidth: AppSpacing.maxContentWidth,
+              ),
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppSpacing.xl),
                 child: Column(
@@ -41,12 +52,17 @@ class GetStartedScreen extends StatelessWidget {
                   children: [
                     Image.asset('assets/logo.png', width: 80, height: 80),
                     const SizedBox(height: AppSpacing.lg),
-                    Text('BLOCKX',
-                        style: AppText.hero.copyWith(fontSize: 44),
-                        textAlign: TextAlign.center),
+                    Text(
+                      'BLOCKX',
+                      style: AppText.hero.copyWith(fontSize: 44),
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: AppSpacing.xs),
-                    Text('Stay locked in. Take back your focus.',
-                        style: AppText.bodyDim, textAlign: TextAlign.center),
+                    Text(
+                      'Stay locked in. Take back your focus.',
+                      style: AppText.bodyDim,
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: AppSpacing.xxl),
                     for (final (icon, title, sub) in _highlights) ...[
                       _Highlight(icon: icon, title: title, subtitle: sub),

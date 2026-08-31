@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/block_providers.dart';
-import '../screens/device_setup_screen.dart';
-import '../services/block_platform.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/screens/device_setup_screen.dart';
+import 'package:blockx/services/block_platform.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
 
 /// Restyled setup card shown until all three permissions are granted. Each
 /// missing permission gets its own row + button that deep-links to the right
@@ -38,8 +38,11 @@ class PermissionBanner extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      color: AppColors.amber, size: 20),
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: AppColors.amber,
+                    size: 20,
+                  ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
@@ -90,7 +93,8 @@ class PermissionBanner extends ConsumerWidget {
                 child: TextButton(
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                        builder: (_) => const DeviceSetupScreen()),
+                      builder: (_) => const DeviceSetupScreen(),
+                    ),
                   ),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.amber,
@@ -98,8 +102,10 @@ class PermissionBanner extends ConsumerWidget {
                     minimumSize: const Size(0, 0),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: Text('Still not working? Open Device Setup →',
-                      style: AppText.bodyDim.copyWith(color: AppColors.amber)),
+                  child: Text(
+                    'Still not working? Open Device Setup →',
+                    style: AppText.bodyDim.copyWith(color: AppColors.amber),
+                  ),
                 ),
               ),
             ],
@@ -139,7 +145,8 @@ class _PermissionRow extends StatelessWidget {
                 side: const BorderSide(color: AppColors.amber),
                 minimumSize: const Size.fromHeight(AppSpacing.tapTarget),
                 shape: const RoundedRectangleBorder(
-                    borderRadius: AppRadius.smAll),
+                  borderRadius: AppRadius.smAll,
+                ),
                 textStyle: AppText.button.copyWith(color: AppColors.amber),
               ),
               child: Text(buttonText.toUpperCase()),

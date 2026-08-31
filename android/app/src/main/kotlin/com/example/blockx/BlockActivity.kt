@@ -3,6 +3,7 @@ package com.example.blockx
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
@@ -54,13 +55,13 @@ class BlockActivity : Activity() {
         private const val OPEN_DELAY_MS = 5_000L
     }
 
-    // ---- BlockX palette (matches lib/theme/app_colors.dart) ----
-    private val cDark = 0xFF080808.toInt()
-    private val cRed = 0xFFE8000D.toInt()
-    private val cAmber = 0xFFFFB020.toInt()
-    private val cText = 0xFFF0E0E0.toInt()
-    private val cWhite = 0xFFFFFFFF.toInt()
-    private val cDim = 0x80F0C8C8.toInt()
+    // ---- BlockX palette — single source of truth: BlockPalette.kt ----
+    private val cDark = BlockPalette.dark
+    private val cRed = BlockPalette.red
+    private val cAmber = BlockPalette.amber
+    private val cText = BlockPalette.text
+    private val cWhite = BlockPalette.white
+    private val cDim = BlockPalette.textDim
 
     // ---- Bundled fonts (loaded from Flutter assets; null-safe fallback) ----
     private val oswald600 by lazy { font("flutter_assets/assets/fonts/Oswald-SemiBold.ttf") }
@@ -122,7 +123,7 @@ class BlockActivity : Activity() {
             // Timed apps/features that ran out of opens: show the (empty) count +
             // dots too, so every timer-blocked screen looks the same.
             addOpensStatus(root, pkg, cRed, showName = false)
-            addStreak(root, pkg)
+            addStreak(root, pkg, cRed)
         }
         root.addView(flexSpacer())
         root.addView(
@@ -160,14 +161,19 @@ class BlockActivity : Activity() {
     private fun buildInterstitial(): View {
         val root = container(cAmber)
         root.addView(flexSpacer())
-        root.addView(iconBadge(cAmber, R.drawable.ic_block_hourglass))
-        root.addView(spacer(dp(24)))
+        // The blocked app's own icon, ringed in amber, with a small hourglass
+        // state chip — contextual, so you see exactly what you're about to open.
+        root.addView(appBadge(blockedPackage, cAmber))
+        root.addView(spacer(dp(22)))
         root.addView(headline("Is this really needed?"))
 
         val pkg = blockedPackage
         if (pkg != null) {
-            addOpensStatus(root, pkg, cAmber, showName = true)
-            addStreak(root, pkg)
+            root.addView(spacer(dp(6)))
+            root.addView(appNameLine(displayName(pkg), cAmber))
+            // "X/total left" + the opens dots (shared with the full-block screen).
+            addOpensStatus(root, pkg, cAmber, showName = false)
+            addStreakPill(root, pkg, cAmber)
         }
 
         root.addView(flexSpacer())
@@ -185,6 +191,106 @@ class BlockActivity : Activity() {
 
         startOpenCountdown()
         return root
+    }
+
+    /**
+     * A ring badge holding the blocked app's real launcher icon (features fall
+     * back to the feature glyph), with a small amber hourglass chip to mark the
+     * timed state. Used by the interstitial only.
+     */
+    private fun appBadge(pkg: String?, accent: Int): View {
+        val size = dp(100)
+        val frame = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(size, size)
+        }
+        // Tinted ring.
+        frame.addView(
+            View(this).apply {
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(withAlpha(accent, 0x1F))
+                    setStroke(dp(2), withAlpha(accent, 0x80))
+                }
+                layoutParams = FrameLayout.LayoutParams(size, size)
+            },
+        )
+        // Main icon: real app icon, or a tinted glyph fallback.
+        val appDrawable = appIcon(pkg)
+        frame.addView(
+            ImageView(this).apply {
+                val isz = dp(54)
+                if (appDrawable != null) {
+                    setImageDrawable(appDrawable)
+                } else {
+                    setImageResource(
+                        if (isFeature) R.drawable.ic_block_feature
+                        else R.drawable.ic_block_hourglass,
+                    )
+                    setColorFilter(accent)
+                }
+                layoutParams = FrameLayout.LayoutParams(isz, isz, Gravity.CENTER)
+            },
+        )
+        // Small hourglass state chip, bottom-right.
+        frame.addView(
+            ImageView(this).apply {
+                setImageResource(R.drawable.ic_block_hourglass)
+                setColorFilter(cWhite)
+                setPadding(dp(6), dp(6), dp(6), dp(6))
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(accent)
+                    setStroke(dp(2), cDark)
+                }
+                layoutParams = FrameLayout.LayoutParams(dp(30), dp(30),
+                    Gravity.BOTTOM or Gravity.END)
+            },
+        )
+        return frame
+    }
+
+    /** The blocked app's real launcher icon, or null (features / not found). */
+    private fun appIcon(pkg: String?): Drawable? {
+        if (pkg == null || isFeature) return null
+        return try {
+            packageManager.getApplicationIcon(pkg)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /** The app/feature name, amber and bold, under the interstitial headline. */
+    private fun appNameLine(name: String, accent: Int): TextView = TextView(this).apply {
+        text = name
+        setTextColor(accent)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+        gravity = Gravity.CENTER
+        letterSpacing = 0.03f
+        typeface = oswald600 ?: Typeface.DEFAULT_BOLD
+    }
+
+    /** A rounded "🔥 N days blocked" pill (interstitial's streak treatment). */
+    private fun addStreakPill(root: LinearLayout, id: String, accent: Int) {
+        val days = BlockRepository.streakDays(this, id)
+        if (days <= 0) return
+        val noun = if (days == 1) "day" else "days"
+        root.addView(spacer(dp(16)))
+        root.addView(
+            TextView(this).apply {
+                text = "🔥  $days $noun blocked"
+                setTextColor(accent)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                gravity = Gravity.CENTER
+                letterSpacing = 0.04f
+                typeface = oswald600 ?: Typeface.DEFAULT_BOLD
+                setPadding(dp(16), dp(8), dp(16), dp(8))
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(100).toFloat()
+                    setColor(withAlpha(accent, 0x1F))
+                    setStroke(dp(1), withAlpha(accent, 0x66))
+                }
+            },
+        )
     }
 
     /** The blocked app's name, or a human label for a feature key. */
@@ -225,18 +331,18 @@ class BlockActivity : Activity() {
     }
 
     /** A "N days blocked" streak line, if this app/feature has a live streak. */
-    private fun addStreak(root: LinearLayout, id: String) {
+    private fun addStreak(root: LinearLayout, id: String, accent: Int) {
         val days = BlockRepository.streakDays(this, id)
         if (days <= 0) return
         root.addView(spacer(dp(16)))
-        root.addView(streakLine(days))
+        root.addView(streakLine(days, accent))
     }
 
-    private fun streakLine(days: Int): TextView {
+    private fun streakLine(days: Int, accent: Int): TextView {
         val noun = if (days == 1) "day" else "days"
         return TextView(this).apply {
             text = "🔥  $days $noun blocked"
-            setTextColor(cAmber)
+            setTextColor(accent)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
             gravity = Gravity.CENTER
             letterSpacing = 0.04f
@@ -263,7 +369,7 @@ class BlockActivity : Activity() {
                     if (filled) {
                         setColor(accent)
                     } else {
-                        setColor(0x00000000)
+                        setColor(BlockPalette.transparent)
                         setStroke(dp(2), withAlpha(accent, 0x66))
                     }
                 }
@@ -356,7 +462,7 @@ class BlockActivity : Activity() {
         background = glow(accent)
         val padH = dp(28)
         val padTop = dp(28)
-        val padBottom = dp(40)
+        val padBottom = dp(24)
         setPadding(padH, padTop, padH, padBottom)
         // Keep the bottom action clear of the system nav bar / gesture pill (and
         // content clear of the status bar) — on some OEMs the block screen draws
@@ -488,3 +594,7 @@ class BlockActivity : Activity() {
         TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics,
     ).toInt()
 }
+
+
+
+

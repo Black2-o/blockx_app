@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
-import '../theme/app_typography.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_typography.dart';
 
 /// The standard text field: dark3 fill, hairline border, red focus ring. Uses
 /// the themed [InputDecorationTheme] but exposes the common knobs.

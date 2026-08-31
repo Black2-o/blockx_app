@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../models/block_config.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/buttons.dart';
+import 'package:blockx/models/block_config.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/buttons.dart';
 
 /// Modal bottom sheet to choose how an app/feature is blocked: Blocked directly
 /// or Time-limited (opens/day + minutes each). Returns the chosen [BlockConfig],
@@ -154,13 +154,18 @@ class _ConfigSheetState extends State<_ConfigSheet> {
                   const SizedBox(height: AppSpacing.md),
                   Row(
                     children: [
-                      const Icon(Icons.lock_outline,
-                          size: 16, color: AppColors.amber),
+                      const Icon(
+                        Icons.lock_outline,
+                        size: 16,
+                        color: AppColors.amber,
+                      ),
                       const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Text(
                           'Limits can only be lowered, never raised.',
-                          style: AppText.bodyDim.copyWith(color: AppColors.amber),
+                          style: AppText.bodyDim.copyWith(
+                            color: AppColors.amber,
+                          ),
                         ),
                       ),
                     ],

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/buttons.dart';
-import 'ask_screen.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/app_scaffold.dart';
+import 'package:blockx/widgets/buttons.dart';
+import 'package:blockx/screens/ask_screen.dart';
 
 /// FAQ: an accordion of the common questions, seeded from the project docs
 /// (permissions, why accessibility, timers, re-enabling). Embeddable as a tab.
@@ -19,41 +19,41 @@ class FaqScreen extends StatelessWidget {
       'Why does BlockX need the Accessibility permission?',
       'It is the whole engine. The accessibility service is what detects which '
           'app is in the foreground and reads a browser’s address bar, so it '
-          'can cover a blocked app or bounce you off a blocked site.'
+          'can cover a blocked app or bounce you off a blocked site.',
     ),
     (
       'Why three permissions?',
       'Accessibility detects the app in front. "Display over other apps" draws '
           'the floating timer and reliably launches the block screen. "Usage '
           'access" reads the real foreground app even under phone-maker game '
-          'launchers.'
+          'launchers.',
     ),
     (
       'The blocking stopped working after a restart.',
       'Some phones aggressively kill background services. Re-open BlockX; if the '
-          'setup banner shows, re-enable the accessibility service from it.'
+          'setup banner shows, re-enable the accessibility service from it.',
     ),
     (
       'How do time-limited apps work?',
       'You pick how many times a day you can open the app and how long each '
           'open lasts. Each open shows an "Is this really needed?" screen, then '
           'grants that session. When the daily opens are used up, it stays '
-          'blocked until midnight.'
+          'blocked until midnight.',
     ),
     (
       'When do daily limits reset?',
       'At midnight, local time. Your opens for each timed app and for '
-          'Shorts/Reels refresh then.'
+          'Shorts/Reels refresh then.',
     ),
     (
       'Does blocking Shorts/Reels block the whole app?',
       'No. Only the short-video section is blocked — the rest of YouTube, '
-          'Instagram, or Facebook keeps working normally.'
+          'Instagram, or Facebook keeps working normally.',
     ),
     (
       'A blocked site loaded for a second before the block screen.',
       'BlockX reads the address bar as the page opens, so there can be a brief '
-          'flash before it bounces you back. That is expected.'
+          'flash before it bounces you back. That is expected.',
     ),
   ];
 
@@ -103,7 +103,7 @@ class _FaqItem extends StatelessWidget {
       child: Theme(
         // Strip the default ExpansionTile dividers/splash for a clean look.
         data: Theme.of(context).copyWith(
-          dividerColor: Colors.transparent,
+          dividerColor: AppColors.transparent,
           splashColor: AppColors.borderRed,
         ),
         child: ExpansionTile(
@@ -143,9 +143,9 @@ class _StillStuck extends StatelessWidget {
           SecondaryLink(
             label: 'Ask Us Anything',
             color: AppColors.red,
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const AskScreen()),
-            ),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute<void>(builder: (_) => const AskScreen())),
           ),
         ],
       ),

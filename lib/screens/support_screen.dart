@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/cards.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/app_scaffold.dart';
+import 'package:blockx/widgets/cards.dart';
 
 /// Support Us: UI only — no backend, and (for now) no external links. The links
 /// will be added later once the real destinations exist.
@@ -38,19 +38,26 @@ class SupportScreen extends StatelessWidget {
                     color: AppColors.red.withValues(alpha: 0.1),
                     borderRadius: AppRadius.smAll,
                   ),
-                  child: const Icon(Icons.favorite_outline,
-                      color: AppColors.red, size: 22),
+                  child: const Icon(
+                    Icons.favorite_outline,
+                    color: AppColors.red,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('More ways to support are coming soon',
-                          style: AppText.label),
+                      Text(
+                        'More ways to support are coming soon',
+                        style: AppText.label,
+                      ),
                       const SizedBox(height: 2),
-                      Text('Donate, share and rate links will appear here.',
-                          style: AppText.bodyDim),
+                      Text(
+                        'Donate, share and rate links will appear here.',
+                        style: AppText.bodyDim,
+                      ),
                     ],
                   ),
                 ),

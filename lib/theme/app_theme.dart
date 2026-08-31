@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
-import 'app_spacing.dart';
-import 'app_typography.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
 
 /// The app-wide dark [ThemeData]. Wired into `MaterialApp` in `main.dart`.
 ///

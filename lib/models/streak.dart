@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
+import 'package:blockx/theme/app_colors.dart';
 
 /// A streak milestone tier: the day threshold, its label, and the accent it
 /// unlocks. Higher tiers drive a more energetic flame animation.

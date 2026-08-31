@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 
-import '../models/app_info.dart';
-import '../models/app_usage.dart';
-import '../models/block_config.dart';
-import '../models/device_info.dart';
+import 'package:blockx/models/app_info.dart';
+import 'package:blockx/models/app_usage.dart';
+import 'package:blockx/models/block_config.dart';
+import 'package:blockx/models/device_info.dart';
 
 /// Thin Dart wrapper over the native Kotlin blocker (`MainActivity` +
 /// `AppBlockerService`) via a single [MethodChannel].

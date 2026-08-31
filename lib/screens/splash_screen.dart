@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../providers/account_provider.dart';
-import '../providers/block_providers.dart';
-import '../widgets/decor.dart';
-import 'get_started_screen.dart';
-import 'onboarding_screen.dart';
-import 'root_shell.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/providers/account_provider.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/widgets/decor.dart';
+import 'package:blockx/screens/get_started_screen.dart';
+import 'package:blockx/screens/onboarding_screen.dart';
+import 'package:blockx/screens/root_shell.dart';
 
 /// First-run brand moment. Logo scale+fades in, then the wordmark and tagline.
 /// After the animation it routes onward (Home for now; Onboarding wiring is
@@ -33,10 +33,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: AppMotion.splash,
-    );
+    _controller = AnimationController(vsync: this, duration: AppMotion.splash);
 
     _logoFade = CurvedAnimation(
       parent: _controller,
@@ -62,8 +59,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   Future<void> _start() async {
     // Respect "reduce motion": skip straight to the resting state.
-    final reduceMotion =
-        WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+    final reduceMotion = WidgetsBinding
+        .instance
+        .platformDispatcher
+        .accessibilityFeatures
+        .disableAnimations;
     if (reduceMotion) {
       _controller.value = 1.0;
     } else {
@@ -73,9 +73,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // a slow OEM permission check can never hang the splash.
     bool needsOnboarding;
     try {
-      final perms = await ref.read(permissionsProvider.future).timeout(
-            const Duration(seconds: 3),
-          );
+      final perms = await ref
+          .read(permissionsProvider.future)
+          .timeout(const Duration(seconds: 3));
       needsOnboarding = !perms.allGranted;
     } catch (_) {
       needsOnboarding = false; // fall through to the app; banner handles it

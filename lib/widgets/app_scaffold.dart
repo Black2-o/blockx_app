@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import 'page_header.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/widgets/page_header.dart';
 
 /// The one responsive page shell every screen uses. Centralizes SafeArea, the
 /// keyboard-safe scaffold, the max-content-width clamp, and a consistent header
@@ -27,8 +27,10 @@ class AppScaffold extends StatelessWidget {
     this.constrainWidth = true,
     this.padded = true,
     this.showBack = true,
-  }) : assert(body == null || slivers == null,
-            'Provide either body or slivers, not both.');
+  }) : assert(
+         body == null || slivers == null,
+         'Provide either body or slivers, not both.',
+       );
 
   final String? title;
   final List<Widget>? actions;
@@ -79,7 +81,9 @@ class AppScaffold extends StatelessWidget {
       return Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: constrainWidth ? AppSpacing.maxContentWidth : double.infinity,
+            maxWidth: constrainWidth
+                ? AppSpacing.maxContentWidth
+                : double.infinity,
           ),
           child: CustomScrollView(slivers: slivers!),
         ),
@@ -99,8 +103,9 @@ class AppScaffold extends StatelessWidget {
     if (constrainWidth) {
       child = Center(
         child: ConstrainedBox(
-          constraints:
-              const BoxConstraints(maxWidth: AppSpacing.maxContentWidth),
+          constraints: const BoxConstraints(
+            maxWidth: AppSpacing.maxContentWidth,
+          ),
           child: child,
         ),
       );

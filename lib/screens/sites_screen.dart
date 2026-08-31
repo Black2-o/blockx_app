@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/block_providers.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/buttons.dart';
-import '../widgets/empty_state.dart';
-import '../widgets/inputs.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/app_scaffold.dart';
+import 'package:blockx/widgets/buttons.dart';
+import 'package:blockx/widgets/empty_state.dart';
+import 'package:blockx/widgets/inputs.dart';
 
 /// Manage blocked website domains: a text field + Add, and a list of domains
 /// with a delete button. Backed by the frozen [blockedSitesProvider].
@@ -64,11 +64,7 @@ class _SitesScreenState extends ConsumerState<SitesScreen> {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            PrimaryButton(
-              label: 'Add',
-              fullWidth: false,
-              onPressed: _add,
-            ),
+            PrimaryButton(label: 'Add', fullWidth: false, onPressed: _add),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),

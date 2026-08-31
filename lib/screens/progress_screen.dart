@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/app_usage.dart';
-import '../providers/block_providers.dart';
-import '../services/block_platform.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../widgets/app_icon.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/buttons.dart';
-import '../widgets/decor.dart';
-import '../widgets/empty_state.dart';
+import 'package:blockx/models/app_usage.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/services/block_platform.dart';
+import 'package:blockx/theme/app_colors.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/theme/app_typography.dart';
+import 'package:blockx/widgets/app_icon.dart';
+import 'package:blockx/widgets/app_scaffold.dart';
+import 'package:blockx/widgets/buttons.dart';
+import 'package:blockx/widgets/decor.dart';
+import 'package:blockx/widgets/empty_state.dart';
 
 /// Screen Time: real per-app usage straight from Android UsageStats (the same
 /// source as system Digital Wellbeing). A week bar chart up top, a selectable
@@ -29,7 +29,9 @@ class ProgressScreen extends ConsumerWidget {
 
     final Widget content = hasUsage
         ? const _UsageView()
-        : _NeedsPermission(onGranted: () => ref.invalidate(permissionsProvider));
+        : _NeedsPermission(
+            onGranted: () => ref.invalidate(permissionsProvider),
+          );
 
     if (embedded) return content;
     return AppScaffold(title: 'Screen Time', body: content, padded: false);
@@ -137,9 +139,19 @@ class _UsageViewState extends ConsumerState<_UsageView> {
   }
 
   static String _mon(int m) => const [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-      ][m - 1];
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ][m - 1];
 
   @override
   Widget build(BuildContext context) {
@@ -175,8 +187,11 @@ class _UsageViewState extends ConsumerState<_UsageView> {
           const SizedBox(height: AppSpacing.lg),
           _DayHeader(
             label: _dayLabel(_selected),
-            total: dayAsync.asData?.value
-                    .fold<Duration>(Duration.zero, (s, u) => s + u.totalTime) ??
+            total:
+                dayAsync.asData?.value.fold<Duration>(
+                  Duration.zero,
+                  (s, u) => s + u.totalTime,
+                ) ??
                 Duration.zero,
             canBack: _canBackDay,
             canForward: _canForwardDay,
@@ -256,16 +271,18 @@ class _WeekChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final maxMs = totals.fold<int>(
-        1, (m, t) => t.total.inMilliseconds > m ? t.total.inMilliseconds : m);
+      1,
+      (m, t) => t.total.inMilliseconds > m ? t.total.inMilliseconds : m,
+    );
     // Daily average over days that have actually happened (skip the future).
-    final past =
-        totals.where((t) => !_dayOnly(t.day).isAfter(today)).toList();
+    final past = totals.where((t) => !_dayOnly(t.day).isAfter(today)).toList();
     final avg = past.isEmpty
         ? Duration.zero
         : Duration(
             milliseconds:
                 past.fold<int>(0, (s, t) => s + t.total.inMilliseconds) ~/
-                    past.length);
+                past.length,
+          );
 
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 12, 8, 14),
@@ -282,12 +299,16 @@ class _WeekChart extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    Text(weekLabel.toUpperCase(),
-                        style: AppText.sectionHeader,
-                        textAlign: TextAlign.center),
+                    Text(
+                      weekLabel.toUpperCase(),
+                      style: AppText.sectionHeader,
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 2),
-                    Text('Daily avg · ${formatUsage(avg)}',
-                        style: AppText.bodyDim),
+                    Text(
+                      'Daily avg · ${formatUsage(avg)}',
+                      style: AppText.bodyDim,
+                    ),
                   ],
                 ),
               ),
@@ -303,7 +324,9 @@ class _WeekChart extends StatelessWidget {
                   width: 22,
                   height: 22,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColors.red),
+                    strokeWidth: 2,
+                    color: AppColors.red,
+                  ),
                 ),
               ),
             )
@@ -326,13 +349,15 @@ class _WeekChart extends StatelessWidget {
   }
 
   Widget _navBtn(IconData icon, VoidCallback? onTap) => IconButton(
-        onPressed: onTap,
-        icon: Icon(icon,
-            size: 22,
-            color: onTap == null
-                ? AppColors.textDim.withValues(alpha: 0.3)
-                : AppColors.text),
-      );
+    onPressed: onTap,
+    icon: Icon(
+      icon,
+      size: 22,
+      color: onTap == null
+          ? AppColors.textDim.withValues(alpha: 0.3)
+          : AppColors.text,
+    ),
+  );
 
   Widget _bar(DayTotal t, int maxMs) {
     const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -340,8 +365,10 @@ class _WeekChart extends StatelessWidget {
     final isFuture = day.isAfter(today);
     final isSel = day == _dayOnly(selected);
     final frac = (t.total.inMilliseconds / maxMs).clamp(0.0, 1.0);
-    final h =
-        (frac * _barMax).clamp(t.total.inMilliseconds > 0 ? 6.0 : 3.0, _barMax);
+    final h = (frac * _barMax).clamp(
+      t.total.inMilliseconds > 0 ? 6.0 : 3.0,
+      _barMax,
+    );
 
     final col = Column(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -355,13 +382,14 @@ class _WeekChart extends StatelessWidget {
                 ? const LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Color(0xFFFF3521), AppColors.red])
+                    colors: [AppColors.redBright, AppColors.red],
+                  )
                 : null,
             color: isSel
                 ? null
                 : (isFuture
-                    ? AppColors.dark3.withValues(alpha: 0.4)
-                    : AppColors.dark3),
+                      ? AppColors.dark3.withValues(alpha: 0.4)
+                      : AppColors.dark3),
             border: isSel ? null : Border.all(color: AppColors.border),
           ),
         ),
@@ -374,8 +402,8 @@ class _WeekChart extends StatelessWidget {
             color: isSel
                 ? AppColors.red
                 : (isFuture
-                    ? AppColors.textDim.withValues(alpha: 0.4)
-                    : AppColors.textDim),
+                      ? AppColors.textDim.withValues(alpha: 0.4)
+                      : AppColors.textDim),
             fontWeight: isSel ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
@@ -430,8 +458,10 @@ class _DayHeader extends StatelessWidget {
                   children: [
                     Text(label.toUpperCase(), style: AppText.bodyDim),
                     const SizedBox(height: 2),
-                    Text(formatUsage(total),
-                        style: AppText.hero.copyWith(fontSize: 40)),
+                    Text(
+                      formatUsage(total),
+                      style: AppText.hero.copyWith(fontSize: 40),
+                    ),
                   ],
                 ),
               ),
@@ -446,10 +476,12 @@ class _DayHeader extends StatelessWidget {
   Widget _stepBtn(IconData icon, VoidCallback? onTap) {
     return IconButton(
       onPressed: onTap,
-      icon: Icon(icon,
-          color: onTap == null
-              ? AppColors.textDim.withValues(alpha: 0.3)
-              : AppColors.text),
+      icon: Icon(
+        icon,
+        color: onTap == null
+            ? AppColors.textDim.withValues(alpha: 0.3)
+            : AppColors.text,
+      ),
     );
   }
 }
@@ -461,8 +493,9 @@ class _UsageRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fraction =
-        maxMs <= 0 ? 0.0 : (usage.totalTime.inMilliseconds / maxMs).clamp(0.0, 1.0);
+    final fraction = maxMs <= 0
+        ? 0.0
+        : (usage.totalTime.inMilliseconds / maxMs).clamp(0.0, 1.0);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -485,11 +518,13 @@ class _UsageRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Text(usage.label,
-                  style: AppText.bodyDim.copyWith(
-                    color: AppColors.text,
-                    fontWeight: FontWeight.w600,
-                  )),
+              Text(
+                usage.label,
+                style: AppText.bodyDim.copyWith(
+                  color: AppColors.text,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),

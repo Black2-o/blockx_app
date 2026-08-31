@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/block_providers.dart';
-import '../theme/app_colors.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/theme/app_colors.dart';
 
 /// Shows an app's real launcher icon (fetched natively + cached), with a neat
 /// rounded fallback tile while it loads or if it can't be found.

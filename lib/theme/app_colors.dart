@@ -15,6 +15,12 @@ abstract final class AppColors {
   /// Borders, icons, glows, badges (≥14sp bold), button FILLS. Never small text.
   static const Color red = Color(0xFFE8000D);
 
+  /// Bright flame-red — the top of the streak / flame gradient.
+  static const Color redBright = Color(0xFFFF3521);
+
+  /// Deep red — the bottom of the hero flame gradient.
+  static const Color redDeep = Color(0xFFB80008);
+
   /// Friction / interstitial states only — never a hard block.
   static const Color amber = Color(0xFFFFB020);
 
@@ -47,4 +53,25 @@ abstract final class AppColors {
 
   /// REQUIRED for any text on a solid red/amber fill (contrast fix).
   static const Color white = Color(0xFFFFFFFF);
+
+  /// Pure black — full-strength scrims / overlays only.
+  static const Color black = Color(0xFF000000);
+
+  /// Fully transparent (dividers, gradient end-stops, rip-free fills).
+  static const Color transparent = Color(0x00000000);
+
+  // ---- Streak hero gradient helpers -----------------------------------------
+  // Dark-red scrim laid behind hero text over the flame gradient, so the big
+  // number always reads. [heroScrim] fades to [heroScrimClear]; [heroShadow]
+  // is the soft drop shadow on the number itself.
+  static const Color heroScrim = Color(0x9E3C0003);
+  static const Color heroScrimClear = Color(0x003C0003);
+  static const Color heroShadow = Color(0x803C0003);
+
+  /// The flame gradient stops (top → bottom), used for kept-day marks, bars,
+  /// and calendar cells. Compose a LinearGradient from these — never re-hex.
+  static const List<Color> flameGradient = [redBright, red, amber];
+
+  /// The hero panel's red-dominant gradient stops (top-left → bottom-right).
+  static const List<Color> heroRedGradient = [redBright, red, redDeep];
 }

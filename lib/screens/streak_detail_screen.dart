@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/block_providers.dart';
-import '../providers/streak_provider.dart';
-import '../theme/app_spacing.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/streak_widgets.dart';
-import 'streak_screen.dart';
+import 'package:blockx/providers/block_providers.dart';
+import 'package:blockx/providers/streak_provider.dart';
+import 'package:blockx/theme/app_spacing.dart';
+import 'package:blockx/widgets/app_scaffold.dart';
+import 'package:blockx/widgets/streak_widgets.dart';
+import 'package:blockx/screens/streak_screen.dart';
 
 /// One streak, in full: the gradient hero, a pageable month calendar of the
 /// days kept, and the next milestone. Reached by tapping a streak on the
