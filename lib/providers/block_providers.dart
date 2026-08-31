@@ -35,6 +35,21 @@ final usageStatsProvider =
   return BlockPlatform.getUsageStats();
 });
 
+/// Per-app screen time for a specific day (keyed by its local-midnight
+/// [DateTime]). Powers the Screen Time day view / day navigator.
+final usageForDayProvider =
+    FutureProvider.autoDispose.family<List<AppUsage>, DateTime>((ref, day) {
+  return BlockPlatform.getUsageForDay(day);
+});
+
+/// The 7 daily totals for the week starting at the given Monday (keyed by that
+/// date) — the week bar chart on the Screen Time screen. Only reaches as far
+/// back as the phone retains usage events.
+final weekTotalsProvider =
+    FutureProvider.autoDispose.family<List<DayTotal>, DateTime>((ref, weekStart) {
+  return BlockPlatform.getUsageHistory(weekStart: weekStart);
+});
+
 /// An app's launcher icon (PNG bytes), by package name. Cached for the session
 /// so the same icon isn't fetched twice.
 final appIconProvider =

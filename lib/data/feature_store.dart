@@ -19,6 +19,18 @@ class FeatureStore {
   /// The known feature keys, in display order. Must match native `featureApps`.
   static const List<String> keys = ['yt_shorts', 'ig_reels', 'fb_reels'];
 
+  /// Feature key -> the package of the app it lives inside. Mirror of native
+  /// `featureApps` (AppBlockerService.kt). Used to detect when a feature is
+  /// "covered" by a full block on its parent app: while the parent app is
+  /// blocked, the feature is subsumed — its card locks and it stops being
+  /// separately enforced, but its stored config (and streak) stay frozen so it
+  /// resurfaces intact once the app is unblocked.
+  static const Map<String, String> parentPackage = {
+    'yt_shorts': 'com.google.android.youtube',
+    'ig_reels': 'com.instagram.android',
+    'fb_reels': 'com.facebook.katana',
+  };
+
   final Box<String> _box;
 
   static Future<FeatureStore> open() async {

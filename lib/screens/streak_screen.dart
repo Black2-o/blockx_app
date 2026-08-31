@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/streak.dart';
 import '../providers/block_providers.dart';
 import '../providers/streak_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
-import '../widgets/app_icon.dart';
 import '../widgets/app_scaffold.dart';
-import '../widgets/cards.dart';
 import '../widgets/empty_state.dart';
-import '../widgets/streak_flame.dart';
-import 'progress_screen.dart';
+import '../widgets/streak_widgets.dart';
+import 'streak_detail_screen.dart';
 
-/// The Streak tab: a hero for your best current streak, a quick stats row
-/// (active / best-ever / total days), a screen-time summary, then the full list
-/// of per-item streaks. Streaks are UI-only (see StreakStore) — the blocking
-/// backend is untouched.
+/// The Streak tab: a gradient flame hero for the longest streak, an at-a-glance
+/// stats row, a screen-time shortcut, then a card per blocked app/feature —
+/// each with its own week strip and a tap-through to the full history. Streaks
+/// are UI-only (see StreakStore); the blocking backend is untouched.
 class StreakScreen extends ConsumerStatefulWidget {
   const StreakScreen({super.key, this.embedded = false});
 
@@ -34,6 +31,12 @@ class StreakScreen extends ConsumerStatefulWidget {
 }
 
 class _StreakScreenState extends ConsumerState<StreakScreen> {
+  void _openDetail(String id) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => StreakDetailScreen(id: id)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final blockList = ref.watch(blockListProvider);
@@ -61,28 +64,22 @@ class _StreakScreenState extends ConsumerState<StreakScreen> {
 
     int daysFor(String id) =>
         streaks.containsKey(id) ? notifier.daysFor(id) : 1;
+    DateTime startFor(String id) => streaks[id] ?? DateTime.now();
+    bool isFeature(String id) => activeFeatures.contains(id);
+    String titleFor(String id) {
+      if (isFeature(id)) return StreakScreen.featureMeta[id]?.$1 ?? id;
+      return ref
+          .watch(appNameProvider(id))
+          .maybeWhen(data: (n) => n, orElse: () => id);
+    }
 
     final ordered = activeIds.toList()
       ..sort((a, b) => daysFor(b).compareTo(daysFor(a)));
     final hasStreaks = ordered.isNotEmpty;
     final totalDays = ordered.fold<int>(0, (sum, id) => sum + daysFor(id));
     final topDays = hasStreaks ? daysFor(ordered.first) : 0;
-    // Best ever is at least the current best, so it never reads low on frame 1.
     final bestEver =
         notifier.bestEver > topDays ? notifier.bestEver : topDays;
-
-    Widget streakCard(String id, {required bool featured}) {
-      final isFeature = activeFeatures.contains(id);
-      return _StreakCard(
-        featured: featured,
-        days: daysFor(id),
-        record: notifier.recordFor(id),
-        isFeature: isFeature,
-        title: isFeature ? (StreakScreen.featureMeta[id]?.$1 ?? id) : id,
-        packageName: isFeature ? null : id,
-        featureIcon: StreakScreen.featureMeta[id]?.$2,
-      );
-    }
 
     final body = ListView(
       padding: EdgeInsets.fromLTRB(
@@ -92,17 +89,36 @@ class _StreakScreenState extends ConsumerState<StreakScreen> {
         AppSpacing.xxxl,
       ),
       children: [
-        // Always-visible overview so the tab never looks empty, even on day one.
+        // Lead with the featured (longest) streak, like the reference apps.
+        if (hasStreaks) ...[
+          Builder(builder: (_) {
+            final id = ordered.first;
+            return StreakHeroCard(
+              days: daysFor(id),
+              record: notifier.recordFor(id),
+              title: titleFor(id),
+              start: startFor(id),
+              packageName: isFeature(id) ? null : id,
+              featureIcon:
+                  isFeature(id) ? StreakScreen.featureMeta[id]?.$2 : null,
+              onTap: () => _openDetail(id),
+            );
+          }),
+          const SizedBox(height: AppSpacing.lg),
+        ],
+
         _StatsRow(
           active: ordered.length,
           bestEver: bestEver,
           totalDays: totalDays,
         ),
-        const SizedBox(height: AppSpacing.lg),
-        const _ScreenTimeSummary(),
+        const SizedBox(height: AppSpacing.md),
+        const ScreenTimeCard(),
         const SizedBox(height: AppSpacing.xl),
+
         Text('YOUR STREAKS', style: AppText.sectionHeader),
         const SizedBox(height: AppSpacing.md),
+
         if (!hasStreaks)
           const EmptyState(
             icon: Icons.local_fire_department_outlined,
@@ -111,9 +127,16 @@ class _StreakScreenState extends ConsumerState<StreakScreen> {
             compact: true,
           )
         else
-          // The longest streak is featured (bigger); the rest are compact.
-          for (final (i, id) in ordered.indexed) ...[
-            streakCard(id, featured: i == 0),
+          // The full list — including the streak featured in the hero above.
+          for (final id in ordered) ...[
+            StreakListCard(
+              days: daysFor(id),
+              start: startFor(id),
+              title: titleFor(id),
+              packageName: isFeature(id) ? null : id,
+              featureIcon: isFeature(id) ? StreakScreen.featureMeta[id]?.$2 : null,
+              onTap: () => _openDetail(id),
+            ),
             const SizedBox(height: AppSpacing.md),
           ],
       ],
@@ -126,136 +149,6 @@ class _StreakScreenState extends ConsumerState<StreakScreen> {
       );
     }
     return AppScaffold(title: 'Streak', padded: false, body: body);
-  }
-}
-
-/// One streak entry. [featured] renders the big hero variant (larger flame +
-/// number, accent border); otherwise a compact list row.
-class _StreakCard extends ConsumerWidget {
-  const _StreakCard({
-    required this.days,
-    required this.record,
-    required this.featured,
-    required this.isFeature,
-    required this.title,
-    required this.packageName,
-    required this.featureIcon,
-  });
-
-  final int days;
-  final int record;
-  final bool featured;
-  final bool isFeature;
-  final String title;
-  final String? packageName;
-  final IconData? featureIcon;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final displayTitle = packageName == null
-        ? title
-        : ref
-            .watch(appNameProvider(packageName!))
-            .maybeWhen(data: (n) => n, orElse: () => title);
-    final m = StreakLevels.current(days);
-    final next = StreakLevels.next(days);
-    final progress = next == null ? 1.0 : (days / next.days).clamp(0.0, 1.0);
-
-    final flameSize = featured ? 72.0 : 52.0;
-    final numberSize = featured ? 40.0 : 26.0;
-
-    return AppCard(
-      glow: featured,
-      child: Row(
-        children: [
-          StreakFlame(days: days, size: flameSize),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    if (packageName != null)
-                      AppIcon(packageName: packageName!, size: 20)
-                    else
-                      Icon(featureIcon ?? Icons.movie_outlined,
-                          color: AppColors.textDim, size: 20),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(displayTitle,
-                          style: AppText.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                    ),
-                    if (record > days) ...[
-                      const SizedBox(width: AppSpacing.sm),
-                      _BestBadge(record: record),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text('$days',
-                        style: AppText.heroNumber
-                            .copyWith(fontSize: numberSize, color: m.color)),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(days == 1 ? 'DAY' : 'DAYS', style: AppText.bodyDim),
-                    const SizedBox(width: AppSpacing.sm),
-                    StreakMilestoneChip(days: days),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 5,
-                    backgroundColor: AppColors.dark3,
-                    valueColor: AlwaysStoppedAnimation(m.color),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  next == null
-                      ? 'Maxed out — legend.'
-                      : '${next.days - days} day${next.days - days == 1 ? '' : 's'} to ${next.label}',
-                  style: AppText.bodyDim,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Little "all-time best" badge (trophy + record days) shown when a past streak
-/// beat the current one.
-class _BestBadge extends StatelessWidget {
-  const _BestBadge({required this.record});
-
-  final int record;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.emoji_events_outlined,
-            color: AppColors.amber, size: 14),
-        const SizedBox(width: 3),
-        Text('$record',
-            style: AppText.bodyDim.copyWith(
-              color: AppColors.amber,
-              fontWeight: FontWeight.w600,
-            )),
-      ],
-    );
   }
 }
 
@@ -285,24 +178,24 @@ class _StatsRow extends StatelessWidget {
               color: AppColors.red,
             ),
           ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: _StatTile(
-            icon: Icons.emoji_events_outlined,
-            value: '$bestEver',
-            label: 'Best',
-            color: AppColors.amber,
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: _StatTile(
+              icon: Icons.emoji_events_outlined,
+              value: '$bestEver',
+              label: 'Best',
+              color: AppColors.amber,
+            ),
           ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: _StatTile(
-            icon: Icons.calendar_today_outlined,
-            value: '$totalDays',
-            label: 'Total',
-            color: AppColors.emerald,
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: _StatTile(
+              icon: Icons.calendar_today_outlined,
+              value: '$totalDays',
+              label: 'Total',
+              color: AppColors.emerald,
+            ),
           ),
-        ),
         ],
       ),
     );
@@ -348,57 +241,6 @@ class _StatTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: AppText.bodyDim.copyWith(fontSize: 11, letterSpacing: 0.5),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Compact "screen time today" card that opens the full Screen Time page.
-class _ScreenTimeSummary extends ConsumerWidget {
-  const _ScreenTimeSummary();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final usageAsync = ref.watch(usageStatsProvider);
-    final label = usageAsync.maybeWhen(
-      data: (list) {
-        final total = list.fold<Duration>(
-            Duration.zero, (sum, u) => sum + u.totalTime);
-        final h = total.inHours;
-        final mm = total.inMinutes % 60;
-        return h > 0 ? '${h}h ${mm}m' : '${mm}m';
-      },
-      orElse: () => '—',
-    );
-
-    return AppCard(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const ProgressScreen()),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.red.withValues(alpha: 0.1),
-              borderRadius: AppRadius.smAll,
-            ),
-            child: const Icon(Icons.bar_chart, color: AppColors.red, size: 24),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('SCREEN TIME TODAY', style: AppText.bodyDim),
-                const SizedBox(height: 2),
-                Text(label, style: AppText.title),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, color: AppColors.textDim),
         ],
       ),
     );

@@ -621,6 +621,15 @@ class AppBlockerService : AccessibilityService() {
     private fun checkBlockedFeature(pkg: String) {
         if (BlockActivity.isVisible) return
         val key = featureApps[pkg] ?: return
+        // If the parent app is itself blocked, the app-level rule already governs
+        // it — don't ALSO enforce the in-app feature. A strict app-block never
+        // lets you reach the feature anyway; a timed one is already capped by the
+        // app's own limit. The feature's config/streak stay frozen on the Flutter
+        // side and resurface when the app is unblocked.
+        if (BlockRepository.configFor(this, pkg) != null) {
+            if (floatingPackage == key) hideFloating()
+            return
+        }
         val cfg = BlockRepository.featureConfigFor(this, key)
         if (cfg == null) {                        // feature off
             if (floatingPackage == key) hideFloating()
@@ -953,12 +962,16 @@ class AppBlockerService : AccessibilityService() {
             setTextColor(cText)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setTypeface(Typeface.DEFAULT_BOLD)
+            // Centre the label and reserve enough room for the widest form
+            // ("1m 59s") so the pill doesn't jump as the text grows/shrinks.
+            gravity = Gravity.CENTER
+            minWidth = dp(50)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
             ).apply {
-                marginStart = dp(7)
-                marginEnd = dp(8)
+                marginStart = dp(8)
+                marginEnd = dp(9)
             }
         }
 
@@ -1152,9 +1165,15 @@ class AppBlockerService : AccessibilityService() {
         val pkg = floatingPackage ?: return
         if (!floatingExpanded) return
         val msLeft = BlockRepository.sessionMillisLeft(this, pkg)
-        // Minutes remaining, rounded up (at least 1 while any time is left).
-        val mins = if (msLeft <= 0) 0 else ((msLeft + 59_999L) / 60_000L).toInt()
-        floatingTimeText?.text = "${mins}m"
+        // Seconds remaining, rounded up so it never reads 0 while time is left.
+        val totalSec = if (msLeft <= 0) 0 else ((msLeft + 999L) / 1000L).toInt()
+        floatingTimeText?.text = when {
+            totalSec <= 0  -> "0s"
+            // Final stretch (under 2 min): count the seconds down too — "1m 59s".
+            totalSec < 120 -> "${totalSec / 60}m ${totalSec % 60}s"
+            // Otherwise just whole minutes, rounded up — "3m", "12m".
+            else           -> "${(totalSec + 59) / 60}m"
+        }
     }
 
     private fun hideFloating() {

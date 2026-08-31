@@ -35,6 +35,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
 
     private val channelName = "com.blockx.app/blocker"
+    private val DAY_MS = 24L * 60 * 60 * 1000
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -47,6 +48,25 @@ class MainActivity : FlutterActivity() {
                     // Read-only: today's per-app screen time for the Screen Time
                     // screen. Additive; does not affect any blocking rule.
                     "getUsageStats" -> result.success(getUsageStats())
+
+                    // Read-only: per-app screen time for a specific day (its
+                    // local-midnight epoch millis). Used by the day navigator.
+                    "getUsageForDay" -> result.success(
+                        getUsageForDay(
+                            (call.argument<Number>("dayStartMs"))?.toLong()
+                                ?: todayStartMs(),
+                        ),
+                    )
+
+                    // Read-only: total foreground time per day for [days] days
+                    // starting at startMs (a local midnight) — one week's bars.
+                    "getUsageHistory" -> result.success(
+                        getDailyTotals(
+                            (call.argument<Number>("startMs"))?.toLong()
+                                ?: (todayStartMs() - 6 * DAY_MS),
+                            (call.argument<Number>("days"))?.toInt() ?: 7,
+                        ),
+                    )
 
                     // Read-only: an app's launcher icon as PNG bytes, for the UI.
                     "getAppIcon" -> result.success(
@@ -185,16 +205,64 @@ class MainActivity : FlutterActivity() {
      * buckets and hugely over-counts when summed.
      */
     private fun getUsageStats(): List<Map<String, Any>> {
+        val now = System.currentTimeMillis()
+        return aggregateUsage(todayStartMs(), now)
+    }
+
+    /** Local-midnight (today), epoch millis. */
+    private fun todayStartMs(): Long = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+
+    /**
+     * Per-app foreground time for the single day beginning at [dayStartMs]
+     * (local midnight). Window is clamped to "now" so today only counts up to
+     * the current moment. Same shape as [getUsageStats].
+     */
+    private fun getUsageForDay(dayStartMs: Long): List<Map<String, Any>> {
+        val dayEnd = dayStartMs + DAY_MS
+        val end = minOf(dayEnd, System.currentTimeMillis())
+        if (end <= dayStartMs) return emptyList()
+        return aggregateUsage(dayStartMs, end)
+    }
+
+    /**
+     * Total foreground time (ms) for [days] consecutive days beginning at
+     * [startMs] (a local midnight), oldest first, as `{dayStartMs, totalMs}`.
+     * Each total is the sum of that day's per-app list (same filtering), so the
+     * chart and the day view agree. Future days come back as 0; past days only
+     * as far back as the phone retains usage events.
+     */
+    private fun getDailyTotals(startMs: Long, days: Int): List<Map<String, Any>> {
+        val n = days.coerceIn(1, 14)
+        val out = ArrayList<Map<String, Any>>(n)
+        for (i in 0 until n) {
+            val dayStart = startMs + i * DAY_MS
+            val list = getUsageForDay(dayStart)
+            val total = list.sumOf { (it["totalTimeMs"] as? Long) ?: 0L }
+            out.add(mapOf("dayStartMs" to dayStart, "totalMs" to total))
+        }
+        return out
+    }
+
+    /**
+     * Per-app foreground time for an arbitrary [start, end] window, computed
+     * from [UsageEvents] foreground/background transitions. This is the
+     * accurate method (it matches the phone's own Screen Time); the aggregate
+     * `queryAndAggregateUsageStats().totalTimeInForeground` over-reports wildly
+     * on some OEMs (ColorOS/Realme) and is deliberately NOT used.
+     *
+     * Only **user-launchable** apps are kept (a CATEGORY_LAUNCHER activity),
+     * which is exactly how [getInstalledApps] defines "an app". That drops the
+     * things the system Screen Time never shows either — OEM "global search",
+     * SystemUI, launchers, and other background/system packages.
+     */
+    private fun aggregateUsage(start: Long, end: Long): List<Map<String, Any>> {
         val usm = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
             ?: return emptyList()
-
-        val end = System.currentTimeMillis()
-        val start = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
 
         val events = usm.queryEvents(start, end) ?: return emptyList()
         val lastForeground = HashMap<String, Long>()
@@ -215,21 +283,22 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
-        // Apps still in the foreground at query time.
+        // Apps still in the foreground at the window end.
         for ((pkg, began) in lastForeground) {
             if (end > began) totals[pkg] = (totals[pkg] ?: 0L) + (end - began)
         }
 
         val pm = packageManager
+        val launchable = launchablePackages()
         val launchers = launcherPackages()
         val out = ArrayList<Map<String, Any>>()
         for ((pkg, ms) in totals) {
             if (pkg == packageName || ms < 1000L) continue // skip self + <1s blips
-            // Skip home screens / launchers (the "Quickstep" entry on Pixel/AOSP
-            // and every OEM launcher) — that's not an app the user "used".
+            // Real, openable apps only — this is what removes "global search"
+            // and every other OEM/system phantom, on any phone.
+            if (pkg !in launchable) continue
             if (pkg in launchers) continue
-            val lower = pkg.lowercase()
-            if (lower.contains("launcher") || lower.contains("quickstep")) continue
+
             val label = try {
                 pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
             } catch (e: Exception) {
@@ -239,6 +308,23 @@ class MainActivity : FlutterActivity() {
         }
         out.sortByDescending { it["totalTimeMs"] as Long }
         return out.take(25)
+    }
+
+    /**
+     * Every package that exposes a normal launcher icon — i.e. an app the user
+     * can actually open. Used to keep Screen Time to real apps and exclude
+     * system/background packages the phone's own Screen Time hides too.
+     */
+    private fun launchablePackages(): Set<String> {
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val set = HashSet<String>()
+        try {
+            for (ri in packageManager.queryIntentActivities(intent, 0)) {
+                ri.activityInfo?.packageName?.let { set.add(it) }
+            }
+        } catch (_: Exception) {
+        }
+        return set
     }
 
     /**

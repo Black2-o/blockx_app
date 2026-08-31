@@ -21,6 +21,6 @@ package com.example.blockx
  */
 object BuiltInBlocklist {
     val domains: List<String> = listOf(
-        'nolinks.com'
+        "nolinks.com",
     )
 }

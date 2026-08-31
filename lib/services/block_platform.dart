@@ -53,6 +53,37 @@ class BlockPlatform {
         .toList();
   }
 
+  /// Per-app foreground time for a single [day] (read-only, from UsageStats).
+  /// The native side counts the local-midnight → min(now, next midnight)
+  /// window. Only as far back as the OS retains events (~7 days).
+  static Future<List<AppUsage>> getUsageForDay(DateTime day) async {
+    final dayStart = DateTime(day.year, day.month, day.day);
+    final List<dynamic> result = await _channel.invokeMethod(
+      'getUsageForDay',
+      {'dayStartMs': dayStart.millisecondsSinceEpoch},
+    ) as List<dynamic>;
+    return result
+        .map((e) => AppUsage.fromMap(e as Map<dynamic, dynamic>))
+        .toList();
+  }
+
+  /// Total foreground time per day for [days] days starting at [weekStart]
+  /// (its local midnight), oldest first. Powers the week bar chart. Future days
+  /// come back as zero; past days only as far back as the phone retains events.
+  static Future<List<DayTotal>> getUsageHistory({
+    required DateTime weekStart,
+    int days = 7,
+  }) async {
+    final start = DateTime(weekStart.year, weekStart.month, weekStart.day);
+    final List<dynamic> result = await _channel.invokeMethod(
+      'getUsageHistory',
+      {'startMs': start.millisecondsSinceEpoch, 'days': days},
+    ) as List<dynamic>;
+    return result
+        .map((e) => DayTotal.fromMap(e as Map<dynamic, dynamic>))
+        .toList();
+  }
+
   /// Shares the full config of the currently-ON apps with the native service,
   /// as a JSON object: `{ "<package>": {mode, opensPerDay, sessionMinutes}, ... }`.
   /// Only enabled apps should be passed. Native uses this to decide, per app,

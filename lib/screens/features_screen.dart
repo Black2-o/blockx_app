@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/feature_store.dart';
 import '../models/block_config.dart';
 import '../providers/block_providers.dart';
 import '../theme/app_colors.dart';
@@ -60,7 +61,17 @@ class FeaturesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final configs = ref.watch(featureBlocksProvider);
+    final blockList = ref.watch(blockListProvider);
     final notifier = ref.read(featureBlocksProvider.notifier);
+
+    // A feature is "covered" when its parent app is itself blocked: the app-level
+    // block already governs it, so the feature card locks (no tap / no turn-off)
+    // and its stored config is left frozen — the streak keeps running and it
+    // resurfaces intact once the app is unblocked.
+    bool coveredByApp(String key) {
+      final pkg = FeatureStore.parentPackage[key];
+      return pkg != null && (blockList[pkg]?.enabled ?? false);
+    }
 
     final body = ListView(
       padding: EdgeInsets.fromLTRB(
@@ -81,6 +92,10 @@ class FeaturesScreen extends ConsumerWidget {
             label: label,
             icon: icon,
             config: configs[key] ?? const BlockConfig(enabled: false),
+            covered: coveredByApp(key),
+            // First word of the label is the parent app name ("Instagram Reels"
+            // -> "Instagram"), used only for the "covered" note.
+            appName: label.split(' ').first,
             onTap: () => _configure(context, ref, key, label,
                 configs[key] ?? const BlockConfig(enabled: false)),
             onTurnOff: () => notifier.setEnabled(key, false),
@@ -100,6 +115,8 @@ class _FeatureCard extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.config,
+    required this.covered,
+    required this.appName,
     required this.onTap,
     required this.onTurnOff,
   });
@@ -107,56 +124,76 @@ class _FeatureCard extends StatelessWidget {
   final String label;
   final IconData icon;
   final BlockConfig config;
+
+  /// True when the parent app is fully blocked: the card is locked (no tap, no
+  /// turn-off) and shows a "covered" note instead of its own block summary.
+  final bool covered;
+
+  /// Parent app's display name, for the "covered" note (e.g. "Instagram").
+  final String appName;
+
   final VoidCallback onTap;
   final VoidCallback onTurnOff;
 
   @override
   Widget build(BuildContext context) {
     final on = config.enabled;
+    final iconColor =
+        covered ? AppColors.textDim : (on ? AppColors.red : AppColors.textDim);
     return AppCard(
-      onTap: onTap,
-      glow: on,
+      // Locked while covered — no configuring or turning off from here.
+      onTap: covered ? null : onTap,
+      glow: on && !covered,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,
       ),
-      child: Row(
-        children: [
-          Icon(icon, color: on ? AppColors.red : AppColors.textDim, size: 24),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: AppText.label),
-                const SizedBox(height: AppSpacing.xs),
-                Row(
-                  children: [
-                    StateBadge.forConfig(config),
-                    const SizedBox(width: AppSpacing.sm),
-                    Flexible(
-                      child: Text(
-                        on ? config.summary : 'Tap to block',
-                        style: AppText.bodyDim,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+      child: Opacity(
+        opacity: covered ? 0.55 : 1,
+        child: Row(
+          children: [
+            Icon(icon, color: iconColor, size: 24),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: AppText.label),
+                  const SizedBox(height: AppSpacing.xs),
+                  Row(
+                    children: [
+                      if (!covered) ...[
+                        StateBadge.forConfig(config),
+                        const SizedBox(width: AppSpacing.sm),
+                      ],
+                      Flexible(
+                        child: Text(
+                          covered
+                              ? 'Covered — $appName is fully blocked'
+                              : (on ? config.summary : 'Tap to block'),
+                          style: AppText.bodyDim,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          if (on)
-            IconButton(
-              icon: const Icon(Icons.close, color: AppColors.textDim),
-              tooltip: 'Turn off',
-              onPressed: onTurnOff,
-            )
-          else
-            const Icon(Icons.chevron_right, color: AppColors.textDim),
-        ],
+            const SizedBox(width: AppSpacing.sm),
+            if (covered)
+              const Icon(Icons.lock_outline, color: AppColors.textDim)
+            else if (on)
+              IconButton(
+                icon: const Icon(Icons.close, color: AppColors.textDim),
+                tooltip: 'Turn off',
+                onPressed: onTurnOff,
+              )
+            else
+              const Icon(Icons.chevron_right, color: AppColors.textDim),
+          ],
+        ),
       ),
     );
   }
