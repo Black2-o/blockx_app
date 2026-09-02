@@ -66,10 +66,12 @@ class BlockScreenViews(private val ctx: Context) {
         }
     }
 
-    /** A flexible (weight 1) spacer that expands to push content/buttons apart. */
-    fun flexSpacer(): View = View(ctx).apply {
+    /** A flexible spacer that expands to push content/buttons apart. A larger
+     *  [weight] takes more of the free space (e.g. a heavier bottom spacer sits
+     *  the content nearer the top). */
+    fun flexSpacer(weight: Float = 1f): View = View(ctx).apply {
         layoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f,
+            LinearLayout.LayoutParams.MATCH_PARENT, 0, weight,
         )
     }
 
@@ -213,7 +215,7 @@ class BlockScreenViews(private val ctx: Context) {
     fun opensCountLine(left: Int, total: Int, accent: Int): View {
         val row = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+            gravity = Gravity.CENTER
         }
         row.addView(
             TextView(ctx).apply {

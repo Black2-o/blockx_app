@@ -110,7 +110,7 @@ class BlockActivity : Activity() {
             addOpensStatus(root, pkg, cRed, showName = false)
             addStreak(root, pkg, cRed)
         }
-        root.addView(views.flexSpacer())
+        root.addView(views.flexSpacer(2f))
         root.addView(
             views.primaryButton(
                 if (isFeature) "Go back" else "Go to home screen",
@@ -134,7 +134,7 @@ class BlockActivity : Activity() {
         root.addView(views.headline("Site Blocked"))
         root.addView(views.spacer(views.dp(12)))
         root.addView(views.bodyText(reason ?: "This is blocked."))
-        root.addView(views.flexSpacer())
+        root.addView(views.flexSpacer(2f))
         root.addView(views.primaryButton("Go back", cRed) { goBack() })
         return root
     }
@@ -163,7 +163,7 @@ class BlockActivity : Activity() {
             addInterstitialOpens(root, pkg, cAmber)
         }
 
-        root.addView(views.flexSpacer())
+        root.addView(views.flexSpacer(2f))
 
         val open = views.primaryButton("Open now (5)", cAmber) { onOpenTapped() }.apply {
             isEnabled = false
