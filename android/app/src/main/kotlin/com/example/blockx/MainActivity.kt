@@ -1,41 +1,30 @@
 package com.example.blockx
 
+import com.example.blockx.blocking.AppBlockerService
+import com.example.blockx.channel.AppInfoReader
+import com.example.blockx.channel.UsageStatsReader
+
 import android.app.AppOpsManager
-import android.app.usage.UsageEvents
-import android.app.usage.UsageStatsManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.os.Process
 import android.provider.Settings
-import java.io.ByteArrayOutputStream
-import java.util.Calendar
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 /**
- * Bridges Flutter to the native blocker over a single [MethodChannel].
- *
- * Methods:
- *  - getInstalledApps          -> List<Map> {appName, packageName} of launchable apps
- *  - setBlockedPackages {list} -> share the currently-ON packages with the service
- *  - isAccessibilityEnabled    -> is our AccessibilityService turned on?
- *  - openAccessibilitySettings -> open the system Accessibility screen
- *  - canDrawOverlays           -> is "draw over other apps" granted?
- *  - openOverlaySettings       -> open the system overlay-permission screen
+ * Bridges Flutter to the native blocker over a single [MethodChannel]. This file
+ * owns only the channel wiring + permission/settings intents; the read-only data
+ * work is delegated to [AppInfoReader] and [UsageStatsReader].
  */
 class MainActivity : FlutterActivity() {
 
     private val channelName = "com.blockx.app/blocker"
-    private val DAY_MS = 24L * 60 * 60 * 1000
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -43,40 +32,45 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
-                    "getInstalledApps" -> result.success(getInstalledApps())
+                    "getInstalledApps" ->
+                        result.success(AppInfoReader.getInstalledApps(this))
 
                     // Read-only: today's per-app screen time for the Screen Time
                     // screen. Additive; does not affect any blocking rule.
-                    "getUsageStats" -> result.success(getUsageStats())
+                    "getUsageStats" ->
+                        result.success(UsageStatsReader.getUsageStats(this))
 
                     // Read-only: per-app screen time for a specific day (its
                     // local-midnight epoch millis). Used by the day navigator.
                     "getUsageForDay" -> result.success(
-                        getUsageForDay(
+                        UsageStatsReader.getUsageForDay(
+                            this,
                             (call.argument<Number>("dayStartMs"))?.toLong()
-                                ?: todayStartMs(),
+                                ?: UsageStatsReader.todayStartMs(),
                         ),
                     )
 
                     // Read-only: total foreground time per day for [days] days
                     // starting at startMs (a local midnight) — one week's bars.
                     "getUsageHistory" -> result.success(
-                        getDailyTotals(
+                        UsageStatsReader.getDailyTotals(
+                            this,
                             (call.argument<Number>("startMs"))?.toLong()
-                                ?: (todayStartMs() - 6 * DAY_MS),
+                                ?: (UsageStatsReader.todayStartMs() -
+                                    6 * UsageStatsReader.DAY_MS),
                             (call.argument<Number>("days"))?.toInt() ?: 7,
                         ),
                     )
 
                     // Read-only: an app's launcher icon as PNG bytes, for the UI.
                     "getAppIcon" -> result.success(
-                        getAppIcon(call.argument<String>("package") ?: ""),
+                        AppInfoReader.getAppIcon(this, call.argument<String>("package") ?: ""),
                     )
 
                     // Read-only: a single app's display label (cheap; avoids
                     // enumerating every installed app just to name one).
                     "getAppLabel" -> result.success(
-                        getAppLabel(call.argument<String>("package") ?: ""),
+                        AppInfoReader.getAppLabel(this, call.argument<String>("package") ?: ""),
                     )
 
                     "setConfigs" -> {
@@ -175,244 +169,10 @@ class MainActivity : FlutterActivity() {
             }
     }
 
-    /** All launchable apps on the device, as maps for the Flutter side. */
-    private fun getInstalledApps(): List<Map<String, String>> {
-        val pm = packageManager
-        val launchable = Intent(Intent.ACTION_MAIN, null)
-            .addCategory(Intent.CATEGORY_LAUNCHER)
-
-        val resolved = pm.queryIntentActivities(launchable, 0)
-        val seen = HashSet<String>()
-        val apps = ArrayList<Map<String, String>>()
-
-        for (info in resolved) {
-            val pkg = info.activityInfo.packageName
-            if (pkg == packageName) continue // don't list ourselves
-            if (!seen.add(pkg)) continue
-            val label = info.loadLabel(pm)?.toString() ?: pkg
-            apps.add(mapOf("appName" to label, "packageName" to pkg))
-        }
-        return apps
-    }
-
-    /**
-     * Today's foreground time per app (ms). Read-only; requires the granted
-     * Usage Access permission. Returns maps `{packageName, appName, totalTimeMs}`
-     * sorted by time desc. Additive — touches no blocking config or state.
-     *
-     * Computed from [UsageEvents] (foreground/background transitions) rather than
-     * `queryUsageStats().totalTimeInForeground`, which returns overlapping daily
-     * buckets and hugely over-counts when summed.
-     */
-    private fun getUsageStats(): List<Map<String, Any>> {
-        val now = System.currentTimeMillis()
-        return aggregateUsage(todayStartMs(), now)
-    }
-
-    /** Local-midnight (today), epoch millis. */
-    private fun todayStartMs(): Long = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 0)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }.timeInMillis
-
-    /**
-     * Per-app foreground time for the single day beginning at [dayStartMs]
-     * (local midnight). Window is clamped to "now" so today only counts up to
-     * the current moment. Same shape as [getUsageStats].
-     */
-    private fun getUsageForDay(dayStartMs: Long): List<Map<String, Any>> {
-        val dayEnd = dayStartMs + DAY_MS
-        val end = minOf(dayEnd, System.currentTimeMillis())
-        if (end <= dayStartMs) return emptyList()
-        return aggregateUsage(dayStartMs, end)
-    }
-
-    /**
-     * Total foreground time (ms) for [days] consecutive days beginning at
-     * [startMs] (a local midnight), oldest first, as `{dayStartMs, totalMs}`.
-     * Each total is the sum of that day's per-app list (same filtering), so the
-     * chart and the day view agree. Future days come back as 0; past days only
-     * as far back as the phone retains usage events.
-     */
-    private fun getDailyTotals(startMs: Long, days: Int): List<Map<String, Any>> {
-        val n = days.coerceIn(1, 14)
-        val out = ArrayList<Map<String, Any>>(n)
-        for (i in 0 until n) {
-            val dayStart = startMs + i * DAY_MS
-            val list = getUsageForDay(dayStart)
-            val total = list.sumOf { (it["totalTimeMs"] as? Long) ?: 0L }
-            out.add(mapOf("dayStartMs" to dayStart, "totalMs" to total))
-        }
-        return out
-    }
-
-    /**
-     * Per-app foreground time for an arbitrary [start, end] window, computed
-     * from [UsageEvents] foreground/background transitions. This is the
-     * accurate method (it matches the phone's own Screen Time); the aggregate
-     * `queryAndAggregateUsageStats().totalTimeInForeground` over-reports wildly
-     * on some OEMs (ColorOS/Realme) and is deliberately NOT used.
-     *
-     * Only **user-launchable** apps are kept (a CATEGORY_LAUNCHER activity),
-     * which is exactly how [getInstalledApps] defines "an app". That drops the
-     * things the system Screen Time never shows either — OEM "global search",
-     * SystemUI, launchers, and other background/system packages.
-     */
-    private fun aggregateUsage(start: Long, end: Long): List<Map<String, Any>> {
-        val usm = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
-            ?: return emptyList()
-
-        val events = usm.queryEvents(start, end) ?: return emptyList()
-        val lastForeground = HashMap<String, Long>()
-        val totals = HashMap<String, Long>()
-        val ev = UsageEvents.Event()
-
-        while (events.hasNextEvent()) {
-            events.getNextEvent(ev)
-            val pkg = ev.packageName ?: continue
-            when (ev.eventType) {
-                UsageEvents.Event.MOVE_TO_FOREGROUND ->
-                    lastForeground[pkg] = ev.timeStamp
-                UsageEvents.Event.MOVE_TO_BACKGROUND -> {
-                    val began = lastForeground.remove(pkg)
-                    if (began != null && ev.timeStamp > began) {
-                        totals[pkg] = (totals[pkg] ?: 0L) + (ev.timeStamp - began)
-                    }
-                }
-            }
-        }
-        // Apps still in the foreground at the window end.
-        for ((pkg, began) in lastForeground) {
-            if (end > began) totals[pkg] = (totals[pkg] ?: 0L) + (end - began)
-        }
-
-        val pm = packageManager
-        val launchable = launchablePackages()
-        val launchers = launcherPackages()
-        val out = ArrayList<Map<String, Any>>()
-        for ((pkg, ms) in totals) {
-            if (pkg == packageName || ms < 1000L) continue // skip self + <1s blips
-            // Real, openable apps only — this is what removes "global search"
-            // and every other OEM/system phantom, on any phone.
-            if (pkg !in launchable) continue
-            if (pkg in launchers) continue
-
-            val label = try {
-                pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
-            } catch (e: Exception) {
-                pkg
-            }
-            out.add(mapOf("packageName" to pkg, "appName" to label, "totalTimeMs" to ms))
-        }
-        out.sortByDescending { it["totalTimeMs"] as Long }
-        return out.take(25)
-    }
-
-    /**
-     * Every package that exposes a normal launcher icon — i.e. an app the user
-     * can actually open. Used to keep Screen Time to real apps and exclude
-     * system/background packages the phone's own Screen Time hides too.
-     */
-    private fun launchablePackages(): Set<String> {
-        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        val set = HashSet<String>()
-        try {
-            for (ri in packageManager.queryIntentActivities(intent, 0)) {
-                ri.activityInfo?.packageName?.let { set.add(it) }
-            }
-        } catch (_: Exception) {
-        }
-        return set
-    }
-
-    /**
-     * Every home-screen / launcher package to hide from Screen Time. Resolves the
-     * device's actual HOME activities (covers whatever launcher this phone uses)
-     * and adds the common OEM launcher/recents packages ("Quickstep" lives in
-     * these). The substring filter in [getUsageStats] catches any others.
-     */
-    private fun launcherPackages(): Set<String> {
-        val set = HashSet<String>()
-        try {
-            val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-            for (ri in packageManager.queryIntentActivities(home, 0)) {
-                ri.activityInfo?.packageName?.let { set.add(it) }
-            }
-        } catch (_: Exception) {
-        }
-        set.addAll(
-            listOf(
-                "com.android.systemui",
-                "com.google.android.apps.nexuslauncher",
-                "com.android.launcher",
-                "com.android.launcher2",
-                "com.android.launcher3",
-                "com.android.quickstep",
-                "com.sec.android.app.launcher",   // Samsung One UI
-                "com.miui.home",                  // Xiaomi
-                "com.mi.android.globallauncher",
-                "com.oppo.launcher",              // Oppo
-                "com.coloros.launcher",           // Oppo/realme ColorOS
-                "com.realme.launcher",
-                "com.oneplus.launcher",           // OnePlus
-                "com.transsion.XOSLauncher",      // Tecno/Infinix
-                "com.huawei.android.launcher",    // Huawei/Honor
-                "com.vivo.launcher",              // Vivo
-                "com.bbk.launcher2",              // Vivo/iQOO
-                "com.microsoft.launcher",
-                "com.teslacoilsw.launcher",       // Nova
-            ),
-        )
-        return set
-    }
-
-    /** An app's display label, or the package name if it can't be resolved. */
-    private fun getAppLabel(pkg: String): String {
-        if (pkg.isEmpty()) return pkg
-        return try {
-            packageManager.getApplicationLabel(
-                packageManager.getApplicationInfo(pkg, 0),
-            ).toString()
-        } catch (e: Exception) {
-            pkg
-        }
-    }
-
-    /** An app's launcher icon as PNG bytes (~96px), or null. Read-only. */
-    private fun getAppIcon(pkg: String): ByteArray? {
-        if (pkg.isEmpty()) return null
-        return try {
-            val drawable = packageManager.getApplicationIcon(pkg)
-            val bmp = drawableToBitmap(drawable)
-            ByteArrayOutputStream().use { out ->
-                bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
-                out.toByteArray()
-            }
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun drawableToBitmap(drawable: Drawable): Bitmap {
-        if (drawable is BitmapDrawable && drawable.bitmap != null) return drawable.bitmap
-        val size = (96 * resources.displayMetrics.density).toInt().coerceAtLeast(96)
-        val w = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else size
-        val h = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else size
-        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bmp)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
-        drawable.draw(canvas)
-        return bmp
-    }
-
     /**
      * Persist the enabled apps' full config where the service can read it.
      * [configsJson] is a JSON object: `{ "<pkg>": {mode, opensPerDay,
-     * sessionMinutes}, ... }`. When an app is removed from the list (or turned
-     * off), it disappears from this blob; we clear any leftover runtime state for
-     * packages no longer present so a re-added app starts fresh.
+     * sessionMinutes}, ... }`.
      */
     private fun saveConfigs(configsJson: String) {
         val prefs = getSharedPreferences("block_prefs", Context.MODE_PRIVATE)

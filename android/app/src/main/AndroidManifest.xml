@@ -52,7 +52,7 @@
              from recents so it never merges with the main UI or shows in recents.
              configChanges so rotating doesn't recreate/flicker it. -->
         <activity
-            android:name=".BlockActivity"
+            android:name=".blockscreen.BlockActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
@@ -62,7 +62,7 @@
 
         <!-- Detects when a blocked app is opened and covers it. -->
         <service
-            android:name=".AppBlockerService"
+            android:name=".blocking.AppBlockerService"
             android:exported="false"
             android:label="BlockX"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
