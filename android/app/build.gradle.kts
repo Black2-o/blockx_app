@@ -1,3 +1,4 @@
+import java.io.File
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -17,10 +18,32 @@ if (hasKeystore) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+fun getInstalledNdkVersion(): String {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        val properties = Properties()
+        localPropertiesFile.inputStream().use { properties.load(it) }
+        val sdkDir = properties.getProperty("sdk.dir")
+        if (sdkDir != null) {
+            val ndkDir = File(sdkDir, "ndk")
+            if (ndkDir.exists() && ndkDir.isDirectory) {
+                val installed = ndkDir.listFiles()
+                    ?.filter { it.isDirectory }
+                    ?.map { it.name }
+                    ?.sortedDescending()
+                if (!installed.isNullOrEmpty()) {
+                    return installed.first()
+                }
+            }
+        }
+    }
+    return flutter.ndkVersion
+}
+
 android {
     namespace = "com.example.blockx"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = getInstalledNdkVersion()
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
